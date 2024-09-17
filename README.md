@@ -220,7 +220,7 @@ The equations:
    * Optimal RF choke inductance is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
    * __Basic (infinite) equation__
      * Unicode: `LRF ≥ 5R ÷ 2πf`
-     * Github:  $$L_{RF} \geq \frac{5R}{2\pif}$$
+     * Github:  $$L_{RF} \geq \frac{5R}{2\pi f}$$
      * Calculates the minimum value of the "infinite" choke inductance approximation.
      * Practical tolerance: +20-30% (higher values generally acceptable)
    * __Finite DC feed inductance variant__
