@@ -184,6 +184,25 @@ The equations:
      * Where `kS` is "Sokal's constant" (generally a value between 1.8 and 2, but observed to sometimes be higher in later use), `V` is the supply voltage in volts, `P` is the desired power output in watts, `f` is the frequency in Hz, and `ω` is the angular frequency in radians per second.
      * Antique formula from Sokal's 1975 paper which is no longer recommended.
      * Doesn't account for many factors considered in modern class E design, such as loaded Q factor, duty cycle, and device characteristics.
+   * __Basic (infinite) rule of thumb equation__
+     * Unicode: `L1 ≥ 5R ÷ 2πf`
+     * Github:  $$L_1 \geq \frac{5R}{2\pi f}$$
+     * Calculates the minimum value of the "infinite" choke inductance approximation.
+     * Here RF choke infinite inductance minimum value is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
+     * Practical tolerance: +20-30% (higher values generally acceptable)
+   * __Finite DC feed inductance rule of thumb variant__
+     * Unicode: `L1 = kLRF ⋅ R ÷ 2πf`
+     * Github:  $$L_1 = k_{LRF} \cdot \frac{R}{2\pi f}$$
+     * Where `kLRF` is a coefficient based on desired loaded `Q` value, typically smaller than 5, allowing for more compact designs at the cost of some efficiency.
+     * Allows for intentional finite choke inductance designs.
+     * Practical tolerance: ±10-15%
+   * __Optimized efficiency rule of thumb variant__
+     * Unicode: `L1 = (0.732 ⋅ R) ÷ 2πf ⋅ j(QL)`
+     * Github:  $$L_1 = \frac{0.732R}{2\pi f} \cdot j(Q_L)$$
+     * Where `j(QL)` is a correction factor based on loaded `Q`, typically being greater than 1.
+     * Optimizes efficiency for finite choke inductance designs.
+     * Provides a balance between size and performance.
+     * Practical tolerance: ±5-10%
 
  * `L2` — __Resonator inductance__ (aka "output inductor", aka "tank inductor")
    * __*Raab* formula__ (2001)
@@ -215,27 +234,6 @@ The equations:
      * Where `i(QL)` is a correction factor based on the loaded `Q` factor `QL`. It is usually less than 1, reducing the required capacitance.
      * Provides more accurate results for real-world choke inductances.
      * Practical tolerance: ±8-12%
-
- * `LRF` — __RF choke inductance__
-   * Optimal RF choke inductance is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
-   * __Basic (infinite) equation__
-     * Unicode: `LRF ≥ 5R ÷ 2πf`
-     * Github:  $$L_{RF} \geq \frac{5R}{2\pi f}$$
-     * Calculates the minimum value of the "infinite" choke inductance approximation.
-     * Practical tolerance: +20-30% (higher values generally acceptable)
-   * __Finite DC feed inductance variant__
-     * Unicode: `LRF = kLRF ⋅ R ÷ 2πf`
-     * Github:  $$L_{RF} = k_{LRF} \cdot \frac{R}{2\pi f}$$ 
-     * Where `kLRF` is a coefficient based on desired loaded `Q` value, typically smaller than 5, allowing for more compact designs at the cost of some efficiency.
-     * Allows for intentional finite choke inductance designs.
-     * Practical tolerance: ±10-15%
-   * __Optimized efficiency variant__
-     * Unicode: `LRF = (0.732 ⋅ R) ÷ 2πf ⋅ j(QL)`
-     * Github:  $$L_{RF} = \frac{0.732R}{2\pi f} \cdot j(Q_L)$$
-     * Where `j(QL)` is a correction factor based on loaded `Q`, typically being greater than 1.
-     * Optimizes efficiency for finite choke inductance designs.
-     * Provides a balance between size and performance.
-     * Practical tolerance: ±5-10%
 
  * `Q` — __Quality factor__
    * Typical values in Class E amplifiers range from 1.8 to 5 for practical implementations, with 3 to 5 being common for narrow-band applications.
