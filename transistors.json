@@ -1,0 +1,911 @@
+{
+  "IRF510": {
+    "vdss_v": 100,
+    "id_a": 4,
+    "rds_on_o": 0.54,
+    "ciss_pf": 180,
+    "coss_pf": 81,
+    "crss_pf": 15,
+    "vgs_th_v": 2.295
+  },
+  "IRF7103PBF": {
+    "lcsc": "C27080",
+    "vdss_v": 50,
+    "id_a": 2.3,
+    "rds_on_o": 0.13,
+    "ciss_pf": 290,
+    "coss_pf": 140,
+    "crss_pf": 37,
+    "vgs_th_v": 2
+  },
+  "SI2304DDS": {
+   "lcsc": "C56372",
+   "vdss_v": 30,
+   "id_a": 2.7,
+   "rds_on_o": 0.049,
+   "ciss_pf": 235,
+   "coss_pf": 45,
+   "crss_pf": 17,
+   "vgs_th_v": 2.3375
+  },
+  "NCE6005AS": {
+    "lcsc": "C126151",
+    "vdss_v": 60,
+    "id_a": 5,
+    "rds_on_o": 0.035,
+    "ciss_pf": 979,
+    "coss_pf": 120,
+    "crss_pf": 100,
+    "vgs_th_v": 1.6 
+  },
+  "UT8205AG-AG6": {
+    "lcsc": "C2827644",
+    "vdss_v": 20,
+    "id_a": 4.8,
+    "rds_on_o": 25,
+    "ciss_pf": 466,
+    "coss_pf": 65,
+    "crss_pf": 58,
+    "vgs_th_v": 0.7 
+  },
+  "FS8205A": {
+    "lcsc": "C2830320",
+    "vdss_v": 20,
+    "id_a": 4.8,
+    "rds_on_o": 31.5,
+    "ciss_pf": 466,
+    "coss_pf": 65,
+    "crss_pf": 58,
+    "vgs_th_v": 0.7
+  },
+  "CJ2310": {
+    "lcsc": "C75882",
+    "vdss_v": 60,
+    "id_a": 3,
+    "rds_on_o": 0.105,
+    "ciss_pf": 247,
+    "coss_pf": 34,
+    "crss_pf": 19.5,
+    "vgs_th_v": 1.25
+  },
+  "HL-9926A": {
+    "lcsc": "C7431451",
+    "vdss_v": 20,
+    "id_a": 4.8,
+    "rds_on_o": 38,
+    "ciss_pf": 358,
+    "coss_pf": 69.3,
+    "crss_pf": 58.5,
+    "vgs_th_v": 0.7
+  },
+  "8205S": {
+    "lcsc": "C2762930",
+    "vdss_v": 20,
+    "id_a": 6,
+    "rds_on_o": 28,
+    "ciss_pf": 522.3,
+    "coss_pf": 98.48,
+    "crss_pf": 74.69,
+    "vgs_th_v": 1
+  },
+  "HL-4882": {
+    "lcsc": "C7543833",
+    "vdss_v": 40,
+    "id_a": 6,
+    "rds_on_o": 0.0022,
+    "ciss_pf": 633,
+    "coss_pf": 67,
+    "crss_pf": 58,
+    "vgs_th_v": 1.5
+  },
+  "IRF7313TRPBF": {
+    "lcsc": "C117622",
+    "vdss_v": 30,
+    "id_a": 5.2,
+    "rds_on_o": 0.029,
+    "ciss_pf": 650,
+    "coss_pf": 320,
+    "crss_pf": 130,
+    "vgs_th_v": 1.5
+  },
+  "HL2310A": {
+    "lcsc": "C7420347",
+    "vdss_v": 60,
+    "id_a": 2.4,
+    "rds_on_o": 0.090,
+    "ciss_pf": 247,
+    "coss_pf": 34,
+    "crss_pf": 19.5,
+    "vgs_th_v": 1.45
+  },
+  "HL2306": {
+    "lcsc": "C28646262",
+    "vdss_v": 30,
+    "id_a": 2.8,
+    "rds_on_o": 39,
+    "ciss_pf": 363,
+    "coss_pf": 49,
+    "crss_pf": 39,
+    "vgs_th_v": 1.6
+  },
+  "WSD3056DN": {
+    "lcsc": "C2758429",
+    "vdss_v": 30,
+    "id_a": 22,
+    "rds_on_o": 13,
+    "ciss_pf": 620,
+    "coss_pf": 85,
+    "crss_pf": 30,
+    "vgs_th_v": 1.8
+  },
+  "HL2302": {
+    "lcsc": "C28646268",
+    "vdss_v": 20,
+    "id_a": 3,
+    "rds_on_o": 55,
+    "ciss_pf": 120,
+    "coss_pf": 30,
+    "crss_pf": 25,
+    "vgs_th_v": 0.75
+  },
+  "SI2304-TP": {
+    "lcsc": "C3289998",
+    "vdss_v": 30,
+    "id_a": 2,
+    "rds_on_o": 0.065,
+    "ciss_pf": 229,
+    "coss_pf": 43,
+    "crss_pf": 35,
+    "vgs_th_v": 1.5
+  },
+  "SO2304A": {
+    "lcsc": "C2681217",
+    "vdss_v": 30,
+    "id_a": 3,
+    "rds_on_o": 35,
+    "ciss_pf": 555,
+    "coss_pf": 120,
+    "crss_pf": 60,
+    "vgs_th_v": 2
+  },
+  "HL2312": {
+    "lcsc": "C28646272",
+    "vdss_v": 20,
+    "id_a": 5.5,
+    "rds_on_o": 0.025,
+    "ciss_pf": 418,
+    "coss_pf": 82,
+    "crss_pf": 70,
+    "vgs_th_v": 0.062
+  },
+  "YFW60N04AD": {
+    "lcsc": "C6069578",
+    "vdss_v": 40,
+    "id_a": 60,
+    "rds_on_o": 0.0085,
+    "ciss_pf": 690,
+    "coss_pf": 182,
+    "crss_pf": 41,
+    "vgs_th_v": 1.75
+  },
+  "30N06": {
+    "lcsc": "C18164386",
+    "vdss_v": 60,
+    "id_a": 13,
+    "rds_on_o": 0.032,
+    "ciss_pf": 1355,
+    "coss_pf": 60,
+    "crss_pf": 49,
+    "vgs_th_v": 1.7
+  },
+  "MS3134": {
+    "lcsc": "C2836310",
+    "vdss_v": 20,
+    "id_a": 0.8,
+    "rds_on_o": 0.350,
+    "ciss_pf": 120,
+    "coss_pf": 20,
+    "crss_pf": 15,
+    "vgs_th_v": 0.7
+  },
+  "TNM1230N5X": {
+    "lcsc": "C5364047",
+    "vdss_v": 30,
+    "id_a": 24,
+    "rds_on_o": 0.012,
+    "ciss_pf": 896,
+    "coss_pf": 126,
+    "crss_pf": 108,
+    "vgs_th_v": 1.75
+  },
+  "HL-2320A": {
+    "lcsc": "C7437078",
+    "vdss_v": 20,
+    "id_a": 5,
+    "rds_on_o": 0.014,
+    "ciss_pf": 700,
+    "coss_pf": 132,
+    "crss_pf": 114,
+    "vgs_th_v": 0.75
+  },
+  "S50N10LF": {
+    "lcsc": "C19100373",
+    "vdss_v": 100,
+    "id_a": 29,
+    "rds_on_o": 17,
+    "ciss_pf": 1208,
+    "coss_pf": 144,
+    "crss_pf": 11.3,
+    "vgs_th_v": 1.7
+  },
+  "IRLML0060": {
+    "lcsc": "C5364306",
+    "vdss_v": 60,
+    "id_a": 2.1,
+    "rds_on_o": 0.116,
+    "ciss_pf": 290,
+    "coss_pf": 37,
+    "crss_pf": 21,
+    "vgs_th_v": 1.3
+  },
+  "RUC002N05HZGT116": {
+    "lcsc": "C510013",
+    "vdss_v": 50,
+    "id_a": 0.2,
+    "rds_on_o": 2.2,
+    "ciss_pf": 25,
+    "coss_pf": 6,
+    "crss_pf": 3,
+    "vgs_th_v": 0.65
+  },
+  "SI2312": {
+    "lcsc": "C5364316",
+    "vdss_v": 20,
+    "id_a": 5,
+    "rds_on_o": 31.8,
+    "ciss_pf": 865,
+    "coss_pf": 105,
+    "crss_pf": 55,
+    "vgs_th_v": 0.7
+  },
+  "SI2302-3": {
+    "lcsc": "C5356028",
+    "vdss_v": 20,
+    "id_a": 3.2,
+    "rds_on_o": 0.080,
+    "ciss_pf": 300,
+    "coss_pf": 120,
+    "crss_pf": 80,
+    "vgs_th_v": 0.95
+  },
+  "WSD4070DN33": {
+    "lcsc": "C719095",
+    "vdss_v": 40,
+    "id_a": 35,
+    "rds_on_o": 0.0055,
+    "ciss_pf": 2420,
+    "coss_pf": 220,
+    "crss_pf": 150,
+    "vgs_th_v": 1.9
+  },
+  "HL-2012S": {
+    "lcsc": "C7437076",
+    "vdss_v": 20,
+    "id_a": 7,
+    "rds_on_o": 0.0112,
+    "ciss_pf": 1000,
+    "coss_pf": 182,
+    "crss_pf": 164,
+    "vgs_th_v": 0.75 
+  },
+  "SED10070GG": {
+    "lcsc": "C396083",
+    "vdss_v": 100,
+    "id_a": 70,
+    "rds_on_o": 0.0098,
+    "ciss_pf": 4400,
+    "coss_pf": 320,
+    "crss_pf": 240,
+    "vgs_th_v": 3 
+  },
+  "AO3420": {
+    "lcsc": "C5379109",
+    "vdss_v": 20,
+    "id_a": 4,
+    "rds_on_o": 0.026,
+    "ciss_pf": 600,
+    "coss_pf": 70,
+    "crss_pf": 45,
+    "vgs_th_v": 0.7
+  },
+  "HL-20N02": {
+    "lcsc": "C7437087",
+    "vdss_v": 20,
+    "id_a": 6.5,
+    "rds_on_o": 0.0025,
+    "ciss_pf": 472,
+    "coss_pf": 71,
+    "crss_pf": 55,
+    "vgs_th_v": 0.8
+  },
+  "DMG4496SSS": {
+    "lcsc": "C508198",
+    "vdss_v": 30,
+    "id_a": 6,
+    "rds_on_o": 0.021,
+    "ciss_pf": 493.5,
+    "coss_pf": 94.5,
+    "crss_pf": 50.4,
+    "vgs_th_v": 1.2
+  },
+  "GT060N04D5": {
+    "lcsc": "C5258963",
+    "vdss_v": 40,
+    "id_a": 62,
+    "rds_on_o": 0.0065,
+    "ciss_pf": 1276,
+    "coss_pf": 634,
+    "crss_pf": 38,
+    "vgs_th_v": 1.4
+  },
+  "BSS123X": {
+    "lcsc": "C6423743",
+    "vdss_v": 100,
+    "id_a": 0.11,
+    "rds_on_o": 6,
+    "ciss_pf": 60,
+    "coss_pf": 15,
+    "crss_pf": 6,
+    "vgs_th_v": 2
+  },
+  "DMN4035L": {
+    "lcsc": "C560271",
+    "vdss_v": 40,
+    "id_a": 4.6,
+    "rds_on_o": 0.042,
+    "ciss_pf": 574,
+    "coss_pf": 87.8,
+    "crss_pf": 38.7,
+    "vgs_th_v": 2
+  },
+  "AP180N03G": {
+    "lcsc": "C5443711",
+    "vdss_v": 30,
+    "id_a": 115,
+    "rds_on_o": 0.0021,
+    "ciss_pf": 4300,
+    "coss_pf": 720,
+    "crss_pf": 420,
+    "vgs_th_v": 1.7
+  },
+  "AO3400A": {
+    "lcsc": "C5379092",
+    "vdss_v": 30,
+    "id_a": 4.1,
+    "rds_on_o": 0.030,
+    "ciss_pf": 345,
+    "coss_pf": 55,
+    "crss_pf": 32,
+    "vgs_th_v": 0.9
+  },
+  "AO4482": {
+    "lcsc": "C192576",
+    "vdss_v": 100,
+    "id_a": 5,
+    "rds_on_o": 0.037,
+    "ciss_pf": 1630,
+    "coss_pf": 100,
+    "crss_pf": 50,
+    "vgs_th_v": 2.1 
+  },
+  "SQJ142EP": {
+    "lcsc": "C5758799",
+    "vdss_v": 40,
+    "id_a": 97,
+    "rds_on_o": 0.0036,
+    "ciss_pf": 1890,
+    "coss_pf": 625,
+    "crss_pf": 30,
+    "vgs_th_v": 3
+  },
+  "FDV301N-NL-VB": {
+    "lcsc": "C5878797",
+    "vdss_v": 20,
+    "id_a": 4,
+    "rds_on_o": 0.028,
+    "ciss_pf": 865,
+    "coss_pf": 105,
+    "crss_pf": 55,
+    "vgs_th_v": 0.725
+  },
+  "SI2312BDS-T1-GE3-VB": {
+    "lcsc": "C5441239",
+    "vdss_v": 20,
+    "id_a": 4,
+    "rds_on_o": 0.028,
+    "ciss_pf": 865,
+    "coss_pf": 105,
+    "crss_pf": 55,
+    "vgs_th_v": 0.725
+  },
+  "SI2302": {
+    "lcsc": "C77977",
+    "vdss_v": 20,
+    "id_a": 3,
+    "rds_on_o": 0.055,
+    "ciss_pf": 237,
+    "coss_pf": 120,
+    "crss_pf": 45,
+    "vgs_th_v": 0.925
+  },
+  "PJA3404-AU": {
+    "lcsc": "C5337172",
+    "vdss_v": 30,
+    "id_a": 5.6,
+    "rds_on_o": 0.030,
+    "ciss_pf": 343,
+    "coss_pf": 48,
+    "crss_pf": 34,
+    "vgs_th_v": 1.33
+  },
+  "FDN337N": {
+    "lcsc": "C19188371",
+    "vdss_v": 30,
+    "id_a": 2.2,
+    "rds_on_o": 0.065,
+    "ciss_pf": 285,
+    "coss_pf": 33,
+    "crss_pf": 27,
+    "vgs_th_v": 0.9
+  },
+  "AO3400": {
+    "lcsc": "C5278896",
+    "vdss_v": 30,
+    "id_a": 5.8,
+    "rds_on_o": 0.027,
+    "ciss_pf": 632,
+    "coss_pf": 58,
+    "crss_pf": 70,
+    "vgs_th_v": 0.9
+  },
+  "AON7524": {
+    "lcsc": "C431195",
+    "vdss_v": 30,
+    "id_a": 22,
+    "rds_on_o": 0.0033,
+    "ciss_pf": 2250,
+    "coss_pf": 800,
+    "crss_pf": 65,
+    "vgs_th_v": 0.8
+  },
+  "FDS5670-NL-VB": {
+    "lcsc": "C5878792",
+    "vdss_v": 60,
+    "id_a": 7.6,
+    "rds_on_o": 0.012,
+    "ciss_pf": 1100,
+    "coss_pf": 90,
+    "crss_pf": 55,
+    "vgs_th_v": 2
+  },
+  "SP60N02BGNK": {
+    "lcsc": "C22385420",
+    "vdss_v": 60,
+    "id_a": 120,
+    "rds_on_o": 0.0029,
+    "ciss_pf": 3910,
+    "coss_pf": 1300,
+    "crss_pf": 11,
+    "vgs_th_v": 1.7
+  },
+  "AO3400-SOT23": {
+    "lcsc": "C332101",
+    "vdss_v": 30,
+    "id_a": 5.8,
+    "rds_on_o": 0.028,
+    "ciss_pf": 340,
+    "coss_pf": 115,
+    "crss_pf": 33,
+    "vgs_th_v": 1.05
+  },
+  "SED4060G": {
+    "lcsc": "C238671",
+    "vdss_v": 40,
+    "id_a": 60,
+    "rds_on_o": 0.007,
+    "ciss_pf": 942,
+    "coss_pf": 309,
+    "crss_pf": 29,
+    "vgs_th_v": 1.6
+  },
+  "MOT4N70C": {
+    "lcsc": "C5143152",
+    "vdss_v": 700,
+    "id_a": 4,
+    "rds_on_o": 0.0028,
+    "ciss_pf": 520,
+    "coss_pf": 70,
+    "crss_pf": 8,
+    "vgs_th_v": 3
+  },
+  "AO3402-MSK": {
+    "lcsc": "C5379095",
+    "vdss_v": 30,
+    "id_a": 3,
+    "rds_on_o": 0.047,
+    "ciss_pf": 695,
+    "coss_pf": 45,
+    "crss_pf": 36,
+    "vgs_th_v": 0.9
+  },
+  "MDD3404": {
+    "lcsc": "C5357581",
+    "vdss_v": 30,
+    "id_a": 5.8,
+    "rds_on_o": 0.023,
+    "ciss_pf": 820,
+    "coss_pf": 118,
+    "crss_pf": 85,
+    "vgs_th_v": 2.05
+  },
+  "AOD480": {
+    "lcsc": "C427017",
+    "vdss_v": 30,
+    "id_a": 18,
+    "rds_on_o": 0.023,
+    "ciss_pf": 373,
+    "coss_pf": 67,
+    "crss_pf": 41,
+    "vgs_th_v": 2.1
+  },
+  "DMN6040SVT": {
+    "lcsc": "C461036",
+    "vdss_v": 60,
+    "id_a": 4,
+    "rds_on_o": 0.044,
+    "ciss_pf": 1287,
+    "coss_pf": 57,
+    "crss_pf": 44,
+    "vgs_th_v": 2
+  },
+  "IRLML2803GTRPBF-VB": {
+    "lcsc": "C5444636",
+    "vdss_v": 30,
+    "id_a": 5,
+    "rds_on_o": 0.030,
+    "ciss_pf": 335,
+    "coss_pf": 45,
+    "crss_pf": 17,
+    "vgs_th_v": 1.1
+  },
+  "DMN4020LFDE": {
+    "lcsc": "C5378675",
+    "vdss_v": 40,
+    "id_a": 6.3,
+    "rds_on_o": 0.020,
+    "ciss_pf": 1060,
+    "coss_pf": 84,
+    "crss_pf": 58,
+    "vgs_th_v": 1.9
+  },
+  "BSS214N": {
+    "lcsc": "C7466803",
+    "vdss_v": 20,
+    "id_a": 1.2,
+    "rds_on_o": 0.175,
+    "ciss_pf": 107,
+    "coss_pf": 46,
+    "crss_pf": 6,
+    "vgs_th_v": 0.95
+  },
+  "SI2302-2": {
+    "lcsc": "C3038095",
+    "vdss_v": 20,
+    "id_a": 2.9,
+    "rds_on_o": 0.026,
+    "ciss_pf": 480,
+    "coss_pf": 86,
+    "crss_pf": 56,
+    "vgs_th_v": 0.85
+  },
+  "CSD18537NQ5A": {
+    "lcsc": "C72266",
+    "vdss_v": 60,
+    "id_a": 11,
+    "rds_on_o": 0.010,
+    "ciss_pf": 1140,
+    "coss_pf": 136,
+    "crss_pf": 4,
+    "vgs_th_v": 3
+  },
+  "G050N06LL": {
+    "lcsc": "C7465309",
+    "vdss_v": 60,
+    "id_a": 5,
+    "rds_on_o": 0.045,
+    "ciss_pf": 1343,
+    "coss_pf": 63,
+    "crss_pf": 55,
+    "vgs_th_v": 1.5
+  },
+  "BSS123": {
+    "lcsc": "C6069530",
+    "vdss_v": 100,
+    "id_a": 0.17,
+    "rds_on_o": 0.006,
+    "ciss_pf": 73,
+    "coss_pf": 7,
+    "crss_pf": 3.4,
+    "vgs_th_v": 1.8
+  },
+  "2N7002X": {
+    "lcsc": "C5307993",
+    "vdss_v": 60,
+    "id_a": 0.3,
+    "rds_on_o": 0.0025,
+    "ciss_pf": 20,
+    "coss_pf": 10,
+    "crss_pf": 3.6,
+    "vgs_th_v": 1.6
+  },
+  "IRLML2402": {
+    "lcsc": "C5364307",
+    "vdss_v": 20,
+    "id_a": 0.095,
+    "rds_on_o": 0.0025,
+    "ciss_pf": 110,
+    "coss_pf": 51,
+    "crss_pf": 25,
+    "vgs_th_v": 0.7
+  },
+  "IRLML6344TRPBF-VB": {
+    "lcsc": "C6705285",
+    "vdss_v": 30,
+    "id_a": 5,
+    "rds_on_o": 0.030,
+    "ciss_pf": 335,
+    "coss_pf": 45,
+    "crss_pf": 17,
+    "vgs_th_v": 1.1
+  },
+  "DMT10H015LSS": {
+    "lcsc": "C526581",
+    "vdss_v": 100,
+    "id_a": 6.7,
+    "rds_on_o": 0.012,
+    "ciss_pf": 1871,
+    "coss_pf": 261,
+    "crss_pf": 7,
+    "vgs_th_v": 2.3
+  },
+  "STD16NF06LT4-VB": {
+    "lcsc": "C3040222",
+    "vdss_v": 60,
+    "id_a": 35,
+    "rds_on_o": 0.025,
+    "ciss_pf": 1500,
+    "coss_pf": 140,
+    "crss_pf": 60,
+    "vgs_th_v": 2
+  },
+  "WSF4012": {
+    "lcsc": "C86420",
+    "vdss_v": 40,
+    "id_a": 20,
+    "rds_on_o": 0.016,
+    "ciss_pf": 593,
+    "coss_pf": 76,
+    "crss_pf": 56,
+    "vgs_th_v": 2
+  },
+  "HSU48N12A": {
+    "lcsc": "C5341696",
+    "vdss_v": 120,
+    "id_a": 48,
+    "rds_on_o": 0.030,
+    "ciss_pf": 1390,
+    "coss_pf": 198,
+    "crss_pf": 3.7,
+    "vgs_th_v": 3
+  },
+  "SI2342DS-T1-GE3-VB": {
+    "lcsc": "C5878836",
+    "vdss_v": 20,
+    "id_a": 4,
+    "rds_on_o": 0.028,
+    "ciss_pf": 865,
+    "coss_pf": 105,
+    "crss_pf": 55,
+    "vgs_th_v": 0.725
+  },
+  "AON7140": {
+    "lcsc": "C2758662",
+    "vdss_v": 40,
+    "id_a": 148,
+    "rds_on_o": 0.0023,
+    "ciss_pf": 3350,
+    "coss_pf": 580,
+    "crss_pf": 65,
+    "vgs_th_v": 1.85
+  },
+  "CSD18563Q5A": {
+    "lcsc": "C77239",
+    "vdss_v": 60,
+    "id_a": 15,
+    "rds_on_o": 0.0057,
+    "ciss_pf": 1150,
+    "coss_pf": 280,
+    "crss_pf": 3.9,
+    "vgs_th_v": 2
+  },
+  "CJ3134KDW": {
+    "lcsc": "C504140",
+    "vdss_v": 20,
+    "id_a": 0.75,
+    "rds_on_o": 0.270,
+    "ciss_pf": 79,
+    "coss_pf": 13,
+    "crss_pf": 9,
+    "vgs_th_v": 0.54
+  },
+  "AO3402-YYT": {
+    "lcsc": "C18213972",
+    "vdss_v": 30,
+    "id_a": 4,
+    "rds_on_o": 0.032,
+    "ciss_pf": 275,
+    "coss_pf": 43,
+    "crss_pf": 33,
+    "vgs_th_v": 1.5
+  },
+  "G800N06H": {
+    "lcsc": "C7465315",
+    "vdss_v": 60,
+    "id_a": 3,
+    "rds_on_o": 0.080,
+    "ciss_pf": 457,
+    "coss_pf": 25,
+    "crss_pf": 22,
+    "vgs_th_v": 0.9
+  },
+  "DMN4800LSSQ": {
+    "lcsc": "C461027",
+    "vdss_v": 30,
+    "id_a": 6.3,
+    "rds_on_o": 0.011,
+    "ciss_pf": 798,
+    "coss_pf": 128,
+    "crss_pf": 122,
+    "vgs_th_v": 1.2
+  },
+  "HKTD20N06": {
+    "lcsc": "C5364290",
+    "vdss_v": 60,
+    "id_a": 20,
+    "rds_on_o": 0.037,
+    "ciss_pf": 1500,
+    "coss_pf": 75,
+    "crss_pf": 60,
+    "vgs_th_v": 1.6
+  },
+  "DMN2040U": {
+    "lcsc": "C3009955",
+    "vdss_v": 20,
+    "id_a": 4.8,
+    "rds_on_o": 0.021,
+    "ciss_pf": 667,
+    "coss_pf": 91,
+    "crss_pf": 83,
+    "vgs_th_v": 0.85
+  },
+  "60N02": {
+    "lcsc": "C7437084",
+    "vdss_v": 20,
+    "id_a": 35,
+    "rds_on_o": 0.0048,
+    "ciss_pf": 1832,
+    "coss_pf": 289,
+    "crss_pf": 271,
+    "vgs_th_v": 0.7
+  },
+  "DMN4800LSSL": {
+    "lcsc": "C674416",
+    "vdss_v": 30,
+    "id_a": 5.3,
+    "rds_on_o": 0.011,
+    "ciss_pf": 798,
+    "coss_pf": 128,
+    "crss_pf": 122,
+    "vgs_th_v": 1.2
+  },
+  "ES35N06A": {
+    "lcsc": "C5350996",
+    "vdss_v": 60,
+    "id_a": 16,
+    "rds_on_o": 0.026,
+    "ciss_pf": 1150,
+    "coss_pf": 60,
+    "crss_pf": 50,
+    "vgs_th_v": 1.6
+  },
+  "YFW3404B": {
+    "lcsc": "C6069572",
+    "vdss_v": 30,
+    "id_a": 2.6,
+    "rds_on_o": 0.029,
+    "ciss_pf": 233,
+    "coss_pf": 44,
+    "crss_pf": 33,
+    "vgs_th_v": 1.5
+  },
+  "IRFML8244TRPBF": {
+    "lcsc": "C5381404",
+    "vdss_v": 22,
+    "id_a": 6,
+    "rds_on_o": 0.022,
+    "ciss_pf": 574,
+    "coss_pf": 70,
+    "crss_pf": 60,
+    "vgs_th_v": 0.65
+  },
+  "WSF2040": {
+    "lcsc": "C3825099",
+    "vdss_v": 20,
+    "id_a": 28,
+    "rds_on_o": 0.0062,
+    "ciss_pf": 1450,
+    "coss_pf": 238,
+    "crss_pf": 212,
+    "vgs_th_v": 0.7
+  },
+  "NTD20N06T4G-VB": {
+    "lcsc": "C6705297",
+    "vdss_v": 60,
+    "id_a": 35,
+    "rds_on_o": 0.025,
+    "ciss_pf": 1500,
+    "coss_pf": 140,
+    "crss_pf": 60,
+    "vgs_th_v": 2
+  },
+  "HSU8066": {
+    "lcsc": "C22359251",
+    "vdss_v": 80,
+    "id_a": 38,
+    "rds_on_o": 0.0087,
+    "ciss_pf": 1738,
+    "coss_pf": 317,
+    "crss_pf": 12,
+    "vgs_th_v": 1.75
+  },
+  "ES2310": {
+    "lcsc": "C5350979",
+    "vdss_v": 60,
+    "id_a": 2.4,
+    "rds_on_o": 0.058,
+    "ciss_pf": 400,
+    "coss_pf": 29,
+    "crss_pf": 24,
+    "vgs_th_v": 1.35
+  },
+  "FDS8884": {
+    "lcsc": "C10883",
+    "vdss_v": 30,
+    "id_a": 8.5,
+    "rds_on_o": 0.019,
+    "ciss_pf": 475,
+    "coss_pf": 100,
+    "crss_pf": 65,
+    "vgs_th_v": 1.7
+  },
+  "S12N10": {
+    "lcsc": "C19100370",
+    "vdss_v": 100,
+    "id_a": 12,
+    "rds_on_o": 0.095,
+    "ciss_pf": 196,
+    "coss_pf": 25.9,
+    "crss_pf": 21.4,
+    "vgs_th_v": 1.8
+  }
+}
