@@ -225,7 +225,7 @@ The equations:
      * Practical tolerance: +20-30% (higher values generally acceptable)
    * __Finite DC feed inductance variant__
      * Unicode: `LRF = kLRF ⋅ R ÷ 2πf`
-     * Github:  $$L_{RF} = k_{LRF} \cdot R/2\pi f$$ 
+     * Github:  $$L_{RF} = k_{LRF} \cdot \frac{R}{2\pi f}$$ 
      * Where `kLRF` is a coefficient based on desired loaded `Q` value, typically smaller than 5, allowing for more compact designs at the cost of some efficiency.
      * Allows for intentional finite choke inductance designs.
      * Practical tolerance: ±10-15%
