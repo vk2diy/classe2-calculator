@@ -172,13 +172,13 @@ The equations:
      * This formula by Jaehyeong Choi better accounts for variations in `QL`.
      * Tolerance: Approximately ±2-5%
      * Increasingly used in modern designs where accuracy is required.
-   * __*Kazimierczuk-Puczko* formula__ (1987)
+   * __*Kazimierczuk-Puczko* formula__ (1987) — __NRND__
      * Unicode: `L1 = kKP * V²/(f * P)`
      * Github:  $$L_1 = \frac{K_{KP} \cdot V^2}{f \cdot P}$$
      * Where `kKP` is the Kazimierczuk-Puczko constant (0.2116) which is an optimized coefficient based on ideal Class E operation, `V` is the supply voltage in volts, `P` is the desired power output in watts and `f` is the frequency in Hz.
      * Antique formula from Kazimierczuk and Puczko's 1987 paper which is no longer recommended.
      * At the time of its publication, the formula provided an improvement over Sokal's formula by considering the loaded quality factor (`QL`).
-   * __*Sokal* formula__ (1975)
+   * __*Sokal* formula__ (1975) — __NRND__
      * Unicode: `L1 = kS ⋅ V² ÷ (2πf ⋅ P)` or `L1 = kS ⋅ V² ÷ (ω ⋅ P)`
      * Github:  $$L_1 = \frac{K_S \cdot V^2}{2\pi \cdot f \cdot P}$$ or $$L_1 = \frac{K_S \cdot V^2}{\omega \cdot P}$$
      * Where `kS` is "Sokal's constant" (generally a value between 1.8 and 2, but observed to sometimes be higher in later use), `V` is the supply voltage in volts, `P` is the desired power output in watts, `f` is the frequency in Hz, and `ω` is the angular frequency in radians per second.
