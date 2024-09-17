@@ -261,7 +261,7 @@ The equations:
  * `C(DRAINMAX)` — __Maximum MOSFET Drain Capacitance__
    * Maximum MOSFET drain capacitance is a function of frequency and load resistance.
    * Unicode: `C(DRAINMAX) = k / (2πf ⋅ R(LOAD))`
-   * Github:  $$C_{DRAINMAX} = \frac{1}{2\pif \cdot R_{LOAD}}$$
+   * Github:  $$C_{DRAINMAX} = \frac{1}{2\pi f \cdot R_{LOAD}}$$
    * Where:
      * `k` is a scaling factor (typically between 1 (possibly unworkable at high frequencies) and 4, with 3 as a suggested default at high frequencies)
      * `f` is the operating frequency in Hz
