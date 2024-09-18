@@ -172,6 +172,18 @@ The equations:
      * This formula by Jaehyeong Choi better accounts for variations in `QL`.
      * Tolerance: Approximately ±2-5%
      * Increasingly used in modern designs where accuracy is required.
+   * __*Raab* improved infinite formula (1990s)__
+     * Unicode: `L1 ≥ 5R ÷ 2πf`
+     * Github:  $$L_1 \geq \frac{5 \cdot R}{2\pi f}$$
+     * Calculates the minimum value of the "infinite" choke inductance approximation.
+     * Here RF choke infinite inductance minimum value is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
+     * Practical tolerance: +20-30% (higher values generally acceptable)
+   * __*Kazimierczuk-Puczko* simplified formula__ (1987) — __NRND__
+     * Unicode: `L1 ≥ 10 ⋅ L2`
+     * Github:  $$L_1 \geq 10 \cdot L_2$$
+     * Simplified formula for approximating the mimimum `L1` inductance.
+     * First ratio-based approach to simplify the design process.
+     * Widely referenced in the amateur radio community.
    * __*Kazimierczuk-Puczko* formula__ (1987) — __NRND__
      * Unicode: `L1 = kKP * V²/(f * P)`
      * Github:  $$L_1 = \frac{K_{KP} \cdot V^2}{f \cdot P}$$
@@ -184,12 +196,6 @@ The equations:
      * Where `kS` is "Sokal's constant" (generally a value between 1.8 and 2, but observed to sometimes be higher in later use), `V` is the supply voltage in volts, `P` is the desired power output in watts, `f` is the frequency in Hz, and `ω` is the angular frequency in radians per second.
      * Antique formula from Sokal's 1975 paper which is no longer recommended.
      * Doesn't account for many factors considered in modern class E design, such as loaded Q factor, duty cycle, and device characteristics.
-   * __Basic (infinite) rule of thumb equation__
-     * Unicode: `L1 ≥ 5R ÷ 2πf`
-     * Github:  $$L_1 \geq \frac{5R}{2\pi f}$$
-     * Calculates the minimum value of the "infinite" choke inductance approximation.
-     * Here RF choke infinite inductance minimum value is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
-     * Practical tolerance: +20-30% (higher values generally acceptable)
    * __Finite DC feed inductance rule of thumb variant__
      * Unicode: `L1 = kLRF ⋅ R ÷ 2πf`
      * Github:  $$L_1 = k_{LRF} \cdot \frac{R}{2\pi f}$$
@@ -251,7 +257,7 @@ The equations:
    * Used to calculate the nominal `Q` factor of a radio band.
    * A function of band center frequency and aggregate band bandwidth.
    * Unicode: `Q(BAND) = f₀ / Δf`
-   * Github:  $$Q(BAND) = f_0 / \Delta f$$
+   * Github:  $$Q_{BAND} = f_0 / \Delta f$$
    * Where:
      * `Q` is the quality factor.
      * `f₀` is the center frequency of the band (in Hz).
@@ -279,7 +285,7 @@ The equations:
      * Github:  $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
    * __Baliga's High Frequency Figure of Merit (BHFFOM)__
      * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
-     * Github:  $$BHFFOM = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
+     * Github:  $${BHFFOM} = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
    * __Combined Figure of Merit (CFOM)__
      * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
      * Github:  $$CFOM = \frac{1}{R_{DS(ON)} \cdot Q_g \cdot C_{OSS}}$$
