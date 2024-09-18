@@ -108,7 +108,7 @@ The equations:
        * `K` is a constant and `f(Q)` is a third-order polynomial function of `Q` to provide a closer fit to empirical data.
        * `f(Q)` is a polynomial approximation to account for the effect of the loaded quality factor (`Q`) on the load resistance calculation.
          * Unicode: `f(Q) = 1.0000086 - 0.414395/Q - 0.577501/Q² + 0.205967/Q³`
-         * Github:  $$f(Q) = 1.0000086 - {0.414395}{Q} - \frac{0.577501}{Q^2} + \frac{0.205967}{Q^3}$$
+         * Github:  $$f(Q) = 1.0000086 - \frac{0.414395}{Q} - \frac{0.577501}{Q^2} + \frac{0.205967}{Q^3}$$
      * Advancement over *Raab* (2001) by providing improved accuracy across a wider range of `Q` values (especially lower `Q` values).
      * It accounts for non-ideal switch behavior by including the `Vo` term (voltage drop across the switch when on).
      * Originally published as *[Class-E High Efficiency RF/Microwave Power Amplifiers: Principles of Operation, Design Procedures, and Experimental Verification](theory/2001-class-e-rf-power-amplifiers-sokal.pdf)* by Nathan O. Sokal in *[QEX](https://www.arrl.org/qex/)* (2001), since [republished with corrections](theory/2006-class-e-high-efficiency-rf-microwave-pas-updated-corrected-sokal.pdf) (2006).
