@@ -119,8 +119,7 @@ The equations:
      * Improves accuracy by including the effects of `QL` on the relationship between supply voltage, output power, and load resistance.
      * The inclusion of `QL` allows the equation to be used for both high-Q and low-Q designs.
        * For very high `QL` values, the `QL` terms become negligible and the equation approaches the ideal Class E case.
-       * For lower `QL` values, the additional terms provide the necessary corrections to maintain accuracy.
-     * This equation is significant because it allows Class E amplifiers to be designed more accurately for a wider range of applications, including those where a lower `Q` is desirable for bandwidth or other reasons. It has been widely adopted in both academic and industrial Class E design processes.
+       * For lower `QL` values, desirable for bandwidth or other reasons, the additional terms provide the necessary corrections to maintain accuracy.
    * __Basic (infinite) equation__
      * Unicode: `R = 0.5768 ⋅ VDD² ÷ P`
      * Github:  $$R = \frac{0.5768 V_{DD}^2}{P_{out}}$$
