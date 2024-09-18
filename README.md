@@ -97,6 +97,21 @@ The equations:
 
  * `R` — __Load resistance__
    * This is the optimal load resistance required to produce the maximum output power `P`.
+   * __*VK1SV* variant__ (2001 or later)
+     * Javascript: `var R=0.576801*((Vcc-Vo)*(Vcc-Vo)/P)*(1.0000086-(0.414396/Q)-(0.577501/(Q*Q))+(0.205967/(Q*Q*Q)));`
+     * Unicode:    `R = 0.576801 ⋅ ((VCC-Vo)² ÷ P) ⋅ (1.0000086 - (0.414396/Q) - (0.577501/Q²) + (0.205967/Q³))`
+     * Github:     $$R = 0.576801 \cdot \frac{(V_{CC}-V_o)^2}{P} \cdot [1.0000086 - \frac{0.414396}{Q} - \frac{0.577501}{Q^2} + \frac{0.205967}{Q^3}]$$
+     * Judging from source code of the [VK1SV calculator](https://people.physics.anu.edu.au/~dxt103/calculators/class-e.php), this seems to be a variant implementation of *Sokal's improved formula* (2001), with the polynomial formula `f(Q)` substituted in to provide the complete set of terms. The only known difference is that `0.414396` is used in place of the original's `0.414395` — a functionally insignificant difference, yet worth noting.
+   * __*Sokal*'s improved formula__ (2001)
+     * Unicode: `R = K * ((VCC-Vo)² / P) * (1 + f(Q))`
+     * Where:
+       * `K` is a constant and `f(Q)` is a third-order polynomial function of `Q` to provide a closer fit to empirical data.
+       * `f(Q)` is a polynomial approximation to account for the effect of the loaded quality factor (`Q`) on the load resistance calculation.
+         * Unicode: `f(Q) = 1.0000086 - 0.414395/Q - 0.577501/Q² + 0.205967/Q³`
+         * Github:  $$f(Q) = 1.0000086 - {0.414395}{Q} - \frac{0.577501}{Q^2} + \frac{0.205967}{Q^3}$$
+     * Advancement over *Raab* (2001) by providing improved accuracy across a wider range of `Q` values (especially lower `Q` values).
+     * It accounts for non-ideal switch behavior by including the `Vo` term (voltage drop across the switch when on).
+     * Originally published as *[Class-E High Efficiency RF/Microwave Power Amplifiers: Principles of Operation, Design Procedures, and Experimental Verification](theory/2001-class-e-rf-power-amplifiers-sokal.pdf)* by Nathan O. Sokal in *[QEX](https://www.arrl.org/qex/)* (2001), since [republished with corrections](theory/2006-class-e-high-efficiency-rf-microwave-pas-updated-corrected-sokal.pdf) (2006).
    * __*Raab* formula__ (2001)
      * Unicode: `R = ( ((VCC - Vo)^2) / P) ⋅ k1 ⋅ (1 + (k2 / QL) + (k3 / QL^2))`
      * Github:  $$R = \frac{(V_{CC} - V_o)^2}{P}[k_1][1 + \frac{k_2}{Q_L} + \frac{k_3}{Q_L^2}]$$
@@ -285,7 +300,7 @@ The equations:
      * Github:  $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
    * __Baliga's High Frequency Figure of Merit (BHFFOM)__
      * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
-     * Github:  $${BHFFOM} = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
+     * Github:  $$BHFFOM = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
    * __Combined Figure of Merit (CFOM)__
      * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
      * Github:  $$CFOM = \frac{1}{R_{DS(ON)} \cdot Q_g \cdot C_{OSS}}$$
