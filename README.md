@@ -99,11 +99,12 @@ The equations:
  * `R` — __Load resistance__
    * This is the optimal load resistance required to produce the maximum output power `P`.
    * __*VK1SV* variant__ (2001 or later)
+     * Mathjax: $$R = 0.576801 \cdot \frac{(V_{CC}-V_o)^2}{P} \cdot [1.0000086 - \frac{0.414396}{Q} - \frac{0.577501}{Q^2} + \frac{0.205967}{Q^3}]$$
+     * Unicode: `R = 0.576801 ⋅ ((VCC-Vo)² ÷ P) ⋅ (1.0000086 - (0.414396/Q) - (0.577501/Q²) + (0.205967/Q³))`
      * Javascript: `var R=0.576801*((Vcc-Vo)*(Vcc-Vo)/P)*(1.0000086-(0.414396/Q)-(0.577501/(Q*Q))+(0.205967/(Q*Q*Q)));`
-     * Unicode:    `R = 0.576801 ⋅ ((VCC-Vo)² ÷ P) ⋅ (1.0000086 - (0.414396/Q) - (0.577501/Q²) + (0.205967/Q³))`
-     * Mathjax:    $$R = 0.576801 \cdot \frac{(V_{CC}-V_o)^2}{P} \cdot [1.0000086 - \frac{0.414396}{Q} - \frac{0.577501}{Q^2} + \frac{0.205967}{Q^3}]$$
      * Judging from source code of the [VK1SV calculator](https://people.physics.anu.edu.au/~dxt103/calculators/class-e.php), this seems to be a variant implementation of *Sokal's improved formula* (2001), with the polynomial formula `f(Q)` substituted in to provide the complete set of terms. The only known difference is that `0.414396` is used in place of the original's `0.414395` — a functionally insignificant difference, yet worth noting.
    * __*Sokal*'s improved formula__ (2001)
+     * Mathjax: $$R = K \cdot \frac{(VCC-Vo)^2}{P} \cdot (1 + f(Q))$$
      * Unicode: `R = K * ((VCC-Vo)² / P) * (1 + f(Q))`
      * Where:
        * `K` is a constant and `f(Q)` is a third-order polynomial function of `Q` to provide a closer fit to empirical data.
@@ -114,21 +115,21 @@ The equations:
      * It accounts for non-ideal switch behavior by including the `Vo` term (voltage drop across the switch when on).
      * Originally published as *[Class-E High Efficiency RF/Microwave Power Amplifiers: Principles of Operation, Design Procedures, and Experimental Verification](theory/2001-class-e-rf-power-amplifiers-sokal.pdf)* by Nathan O. Sokal in *[QEX](https://www.arrl.org/qex/)* (2001), since [republished with corrections](theory/2006-class-e-high-efficiency-rf-microwave-pas-updated-corrected-sokal.pdf) (2006).
    * __*Raab* formula__ (2001)
-     * Unicode: `R = ( ((VCC - Vo)^2) / P) ⋅ k1 ⋅ (1 + (k2 / QL) + (k3 / QL^2))`
      * Mathjax: $$R = \frac{(V_{CC} - V_o)^2}{P}[k_1][1 + \frac{k_2}{Q_L} + \frac{k_3}{Q_L^2}]$$
+     * Unicode: `R = ( ((VCC - Vo)^2) / P) ⋅ k1 ⋅ (1 + (k2 / QL) + (k3 / QL^2))`
      * Where `k1` is Raab's first curve-fitting constant of `0.576801`, `k2` is Raab's second curve-fitting constant of `-0.451759`, `k3` is Raab's third curve-fitting constant of `-0.402444`, `VCC` is the supply voltage in volts, `P` is the desired output power in watts, `QL` is the loaded quality factor, and `Vo` is the minimum voltage across the switch ("saturation voltage").
      * Improves accuracy by including the effects of `QL` on the relationship between supply voltage, output power, and load resistance.
      * The inclusion of `QL` allows the equation to be used for both high-Q and low-Q designs.
        * For very high `QL` values, the `QL` terms become negligible and the equation approaches the ideal Class E case.
        * For lower `QL` values, desirable for bandwidth or other reasons, the additional terms provide the necessary corrections to maintain accuracy.
    * __Basic (infinite) equation__
-     * Unicode: `R = 0.5768 ⋅ VDD² ÷ P`
      * Mathjax: $$R = \frac{0.5768 V_{DD}^2}{P_{out}}$$
+     * Unicode: `R = 0.5768 ⋅ VDD² ÷ P`
      * Assumes a 50% duty cycle.
      * Practical tolerance: ±10-15%
    * __Finite variant__
+     * Mathjax: $$R = \frac{0.5768 V_{DD}^2}{P_{out}} \cdot f(Q_L)$$  
      * Unicode: `R = 0.5768 ⋅ VDD² ÷ P ⋅ f(QL)`
-     * Mathjax:$$R = \frac{0.5768 V_{DD}^2}{P_{out}} \cdot f(Q_L)$$  
      * Where `f(QL)` is a correction factor derived from numerical simulations and based on loaded `Q`.
      * Allows for more accurate designs with finite choke inductance.
      * Practical tolerance: ±5-10%
@@ -136,24 +137,24 @@ The equations:
  * `C1` — __Shunt capacitance__
    * Optimal shunt capacitance is a function of the operating frequency and the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
    * __*Raab* formula__ (2001)
-     * Unicode: `C1 = (1 / (34.2219 ⋅ f ⋅ R)) ⋅ (0.99866 + (0.91424 / QL) - (1.03175 / QL²)) + (0.6 / (2πf)²) ⋅ L1`
      * Mathjax: $$C_1 = \frac{1}{34.2219fR}[0.99866 + \frac{0.91424}{Q_L} - \frac{1.03175}{Q_L^2}] + \frac{0.6}{(2\pi f)^2L_1}$$
+     * Unicode: `C1 = (1 / (34.2219 ⋅ f ⋅ R)) ⋅ (0.99866 + (0.91424 / QL) - (1.03175 / QL²)) + (0.6 / (2πf)²) ⋅ L1`
      * Where `f` is the operating frequency in Hz, `R` is the output load resistance in ohms, `QL` is the loaded quality factor, and `L1` is the RF choke or DC feed inductor value in henries.
      * This equation improves accuracy by including second-order effects of `QL` and accounting for the finite inductance of `L1`. The constants were derived from curve-fitting to exact numerical solutions.
    * __Basic (infinite) equation__
-     * Unicode: `C1 = 0.1836 ÷ 2πfR`
      * Mathjax: $$C1 = \frac{0.1836}{2\pi f R}$$ 
+     * Unicode: `C1 = 0.1836 ÷ 2πfR`
      * Calculates the minimum shunt capacitance value at 50% duty cycle and infinite choke inductance.
      * Practical tolerance: ±15-20%
    * __Duty cycle variant__
-     * Unicode: `C1 = kC ÷ 2πfR`
      * Mathjax: $$C1 = \frac{k_C}{2\pi f R}$$ 
+     * Unicode: `C1 = kC ÷ 2πfR`
      * Where `kC` is a coefficient dependent upon duty cycle.
      * Allows for non-50% duty cycle designs.
      * Practical tolerance: ±10-15%
    * __Finite DC feed inductance variant__
-     * Unicode: `C1 = kC ÷ 2πfR ⋅ g(QL)`
      * Mathjax: $$C1 = \frac{0.1836}{2\pi f R} \cdot g(Q_L)$$
+     * Unicode: `C1 = kC ÷ 2πfR ⋅ g(QL)`
      * Where `g(QL)` is a correction factor based on loaded `Q`.
      * Provides more accurate results for real-world choke inductances.
      * Practical tolerance: ±8-12%
@@ -161,65 +162,65 @@ The equations:
  * `L` — __Series inductance__
    * Optimal series inductance is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
    * __Basic (infinite) equation__
-     * Unicode: `L = 1.15R ÷ 2πf`
      * Mathjax: $$L = \frac{1.15R}{2\pi f}$$
+     * Unicode: `L = 1.15R ÷ 2πf`
      * Exact value for 50% duty cycle, infinite choke inductance
      * Practical tolerance: ±10-15%
    * __Duty cycle variant__
-     * Unicode: `L = (kL ⋅ R) ÷ 2πf`
      * Mathjax: $$L = \frac{k_L R}{2\pi f}$$
+     * Unicode: `L = (kL ⋅ R) ÷ 2πf`
      * Where `kL` is a coefficient dependent on duty cycle.
      * Enables designs with non-50% duty cycles.
      * Practical tolerance: ±8-12%
      * Inductance has an inverse relationship to duty cycle, ie. it increases as the duty cycle lowers, and decreases as the duty cycle increases.
    * __Finite DC feed inductance variant__
-     * Unicode: `L = 1.15R ÷ 2πf ⋅ h(QL)`
      * Mathjax: $$L = \frac{1.15R}{2\pi f} \cdot h(Q_L)$$
+     * Unicode: `L = 1.15R ÷ 2πf ⋅ h(QL)`
      * Where `h(QL)` is a correction factor based on loaded `Q`. It is usually less than one, reducing the required inductance.
      * Provides more accurate results for real-world choke inductances.
      * Practical tolerance: ±5-10%
 
  * `L1` — __RF Choke or DC feed inductance__
    * __*Choi* formula__ (2001)
-     * Unicode: `L1 = kC * V²/(f ⋅ P) ⋅ (1 + k₁/QL + k₂/QL²)`
      * Mathjax: $$L_1 = \frac{k_C \cdot V^2}{f \cdot P} \cdot \left[1 + \frac{k_1}{Q_L} + \frac{k_2}{Q_L^2}\right]$$
+     * Unicode: `L1 = kC * V²/(f ⋅ P) ⋅ (1 + k₁/QL + k₂/QL²)`
      * Where `kC` is Choi's primary constant `0.2085`, `k₁` is Choi's first `QL` adjustment constant `1.789`, `k₂` is Choi's second `QL` adjustment constant `-1.481`, `V` is the supply voltage in volts, `P` is the desired power output in watts, `f` is the frequency in Hz, and `QL` is the loaded quality factor.
      * This formula by Jaehyeong Choi better accounts for variations in `QL`.
      * Tolerance: Approximately ±2-5%
      * Increasingly used in modern designs where accuracy is required.
    * __*Raab* improved infinite formula (1990s)__
-     * Unicode: `L1 ≥ 5R ÷ 2πf`
      * Mathjax: $$L_1 \geq \frac{5 \cdot R}{2\pi f}$$
+     * Unicode: `L1 ≥ 5R ÷ 2πf`
      * Calculates the minimum value of the "infinite" choke inductance approximation.
      * Here RF choke infinite inductance minimum value is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
      * Practical tolerance: +20-30% (higher values generally acceptable)
    * __*Kazimierczuk-Puczko* simplified formula__ (1987) — __NRND__
-     * Unicode: `L1 ≥ 10 ⋅ L2`
      * Mathjax: $$L_1 \geq 10 \cdot L_2$$
+     * Unicode: `L1 ≥ 10 ⋅ L2`
      * Simplified formula for approximating the mimimum `L1` inductance.
      * First ratio-based approach to simplify the design process.
      * Widely referenced in the amateur radio community.
    * __*Kazimierczuk-Puczko* formula__ (1987) — __NRND__
-     * Unicode: `L1 = kKP * V²/(f * P)`
      * Mathjax: $$L_1 = \frac{K_{KP} \cdot V^2}{f \cdot P}$$
+     * Unicode: `L1 = kKP * V²/(f * P)`
      * Where `kKP` is the Kazimierczuk-Puczko constant (0.2116) which is an optimized coefficient based on ideal Class E operation, `V` is the supply voltage in volts, `P` is the desired power output in watts and `f` is the frequency in Hz.
      * Antique formula from Kazimierczuk and Puczko's 1987 paper which is no longer recommended.
      * At the time of its publication, the formula provided an improvement over Sokal's formula by considering the loaded quality factor (`QL`).
    * __*Sokal* formula__ (1975) — __NRND__
-     * Unicode: `L1 = kS ⋅ V² ÷ (2πf ⋅ P)` or `L1 = kS ⋅ V² ÷ (ω ⋅ P)`
      * Mathjax: $$L_1 = \frac{K_S \cdot V^2}{2\pi \cdot f \cdot P}$$ or $$L_1 = \frac{K_S \cdot V^2}{\omega \cdot P}$$
+     * Unicode: `L1 = kS ⋅ V² ÷ (2πf ⋅ P)` or `L1 = kS ⋅ V² ÷ (ω ⋅ P)`
      * Where `kS` is "Sokal's constant" (generally a value between 1.8 and 2, but observed to sometimes be higher in later use), `V` is the supply voltage in volts, `P` is the desired power output in watts, `f` is the frequency in Hz, and `ω` is the angular frequency in radians per second.
      * Antique formula from Sokal's 1975 paper which is no longer recommended.
      * Doesn't account for many factors considered in modern class E design, such as loaded Q factor, duty cycle, and device characteristics.
    * __Finite DC feed inductance rule of thumb variant__
-     * Unicode: `L1 = kLRF ⋅ R ÷ 2πf`
      * Mathjax: $$L_1 = k_{LRF} \cdot \frac{R}{2\pi f}$$
+     * Unicode: `L1 = kLRF ⋅ R ÷ 2πf`
      * Where `kLRF` is a coefficient based on desired loaded `Q` value, typically smaller than 5, allowing for more compact designs at the cost of some efficiency.
      * Allows for intentional finite choke inductance designs.
      * Practical tolerance: ±10-15%
    * __Optimized efficiency rule of thumb variant__
-     * Unicode: `L1 = (0.732 ⋅ R) ÷ 2πf ⋅ j(QL)`
      * Mathjax: $$L_1 = \frac{0.732R}{2\pi f} \cdot j(Q_L)$$
+     * Unicode: `L1 = (0.732 ⋅ R) ÷ 2πf ⋅ j(QL)`
      * Where `j(QL)` is a correction factor based on loaded `Q`, typically being greater than 1.
      * Optimizes efficiency for finite choke inductance designs.
      * Provides a balance between size and performance.
@@ -227,31 +228,31 @@ The equations:
 
  * `L2` — __Resonator inductance__ (aka "output inductor", aka "tank inductor")
    * __*Raab* formula__ (2001)
-     * Unicode: `L2 = (QL ⋅ R) ÷ 2πf`
      * Mathjax: $$L_2 = \frac{Q_L \cdot R}{2\pi f}$$
+     * Unicode: `L2 = (QL ⋅ R) ÷ 2πf`
      * Where `QL` is the loaded quality factor, `R` is the load resistance, and `f` is the operating frequency in Hz.
      * This equation represents an improvement by explicitly including `QL`, allowing more accurate calculation of `L2` for different loaded `Q` values. Previously, `L2` was often calculated assuming an infinite `Q`.
 
  * `C2` — __Series capacitance__
    * Optimal series capacitance is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
    * __*Raab* formula__ (2001)
-     * Unicode: `C2 = (1 ÷ (2πfR)) ⋅ (1 / (QL - 0.104823)) ⋅ (1.00121 + (1.01468 / (QL - 1.7879)) ) - (0.2 / (2πf)² ⋅ L1)`
      * Mathjax:$$C_2 = \frac{1}{2\pi fR}\frac{1}{Q_L - 0.104823}[1.00121 + \frac{1.01468}{Q_L - 1.7879}] - \frac{0.2}{(2\pi f)^2L_1}$$
+     * Unicode: `C2 = (1 ÷ (2πfR)) ⋅ (1 / (QL - 0.104823)) ⋅ (1.00121 + (1.01468 / (QL - 1.7879)) ) - (0.2 / (2πf)² ⋅ L1)`
      * Where `QL` is the loaded quality factor, `R` is the load resistance, `f` is the operating frequency in Hz, and `L1` is the RF choke or DC feed inductor value in henries.
    * __Basic (infinite) equation__
-     * Unicode: `C2 = 1 ÷ 2πf(5.4466R)`
      * Mathjax: $$C_2 = \frac{1}{2\pi f(5.4466R)}$$ 
+     * Unicode: `C2 = 1 ÷ 2πf(5.4466R)`
      * Exact value for 50% duty cycle, infinite choke inductance design.
      * Practical tolerance: ±15-20%
    * __Duty cycle variant__
-     * Unicode: `C2 = 1 ÷ 2πf(kC0 ⋅ R)`
      * Mathjax: $$C_2 = \frac{1}{2\pi f(k_{C0}R)}$$
+     * Unicode: `C2 = 1 ÷ 2πf(kC0 ⋅ R)`
      * Where `kC0` is a coefficient dependent on duty cycle.
      * Allows for non-50% duty cycle designs.
      * Practical tolerance: ±10-15%
    * __Finite DC feed inductance variant__ (subsequent to *Raab* (2001))
-     * Unicode: `C2 = 1 ÷ 2πf(5.4466R) ⋅ i(QL)`
      * Mathjax: $$C_2 = \frac{1}{2\pi f(5.4466R)} \cdot i(Q_L)$$
+     * Unicode: `C2 = 1 ÷ 2πf(5.4466R) ⋅ i(QL)`
      * Where `i(QL)` is a correction factor based on the loaded `Q` factor `QL`. It is usually less than 1, reducing the required capacitance.
      * Provides more accurate results for real-world choke inductances.
      * Practical tolerance: ±8-12%
@@ -261,8 +262,8 @@ The equations:
    * Lower values (around 1.8 to 3) are often used for broadband applications or when component tolerances are a concern.
    * Higher values (3-5) are often used for narrowband applications or when precision components are available.
    * The choice affects other circuit parameters, such as the shunt capacitance and the overall power output capability of the amplifier.
-   * Unicode: `QL = (ωL) ÷ R`
    * Mathjax: $$Q_L = \frac{\omega L}{R}$$
+   * Unicode: `QL = (ωL) ÷ R`
    * Where `ω` is the angular frequency in radians per second, `L` is the resonator inductance, and `R` is the load resistance (usually 50 ohms).
 
 
@@ -271,16 +272,16 @@ The equations:
  * `Q(BAND)` — __Quality factor equation__
    * Used to calculate the nominal `Q` factor of a radio band.
    * A function of band center frequency and aggregate band bandwidth.
-   * Unicode: `Q(BAND) = f₀ / Δf`
    * Mathjax: $$Q_{BAND} = f_0 / \Delta f$$
+   * Unicode: `Q(BAND) = f₀ / Δf`
    * Where:
      * `Q` is the quality factor.
      * `f₀` is the center frequency of the band (in Hz).
      * `Δf` is the aggregate bandwidth of the band (in Hz), typically measured at -3dB points.
  * `C(DRAINMAX)` — __Maximum MOSFET Drain Capacitance__
    * Maximum MOSFET drain capacitance is a function of frequency and load resistance.
-   * Unicode: `C(DRAINMAX) = k / (2πf ⋅ R(LOAD))`
    * Mathjax: $$C_{DRAINMAX} = \frac{1}{2\pi f \cdot R_{LOAD}}$$
+   * Unicode: `C(DRAINMAX) = k / (2πf ⋅ R(LOAD))`
    * Where:
      * `k` is a scaling factor (typically between 1 (possibly unworkable at high frequencies) and 4, with 3 as a suggested default at high frequencies)
      * `f` is the operating frequency in Hz
@@ -288,29 +289,29 @@ The equations:
    * Note this formula is merely suggested as a design guideline and has no theoretical basis in the literature.
  * __Transistor Selection Formulae__
    * __Figure of Merit (FOM)__
-     * Unicode: `FOM = RDS(ON) ⋅ Q(g)`
      * Mathjax: $$FOM = R_{DS(ON)} \cdot Q_g$$
+     * Unicode: `FOM = RDS(ON) ⋅ Q(g)`
      * Traditional metric for MOSFET selection - does not function well at high frequencies.
    * __High Frequency Figure of Merit (HFFOM)__
-     * Unicode: `HFFOM = RDS(ON) C(OSS)`
      * Mathjax: $$HF-FOM = R_{DS(ON)} \cdot C_{OSS}$$
+     * Unicode: `HFFOM = RDS(ON) C(OSS)`
      * Revised formula to account for the increased significance of output gate capacitance at high switching frequencies.
    * __Baliga's Figure of Merit (BFOM)__
-     * Unicode: `BFOM = 1 ÷ (RDS(ON) ⋅ A)`
      * Mathjax: $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
+     * Unicode: `BFOM = 1 ÷ (RDS(ON) ⋅ A)`
    * __Baliga's High Frequency Figure of Merit (BHFFOM)__
-     * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
      * Mathjax: $$BHFFOM = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
+     * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
    * __Combined Figure of Merit (CFOM)__
-     * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
      * Mathjax: $$CFOM = \frac{1}{R_{DS(ON)} \cdot Q_g \cdot C_{OSS}}$$
+     * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
    * __Effective Capacitance__
-     * Unicode: `C(EFF) = Q(OSS) ÷ V(DS)`
      * Mathjax: $$C_{EFF} = \frac{Q_{OSS}}{V_{DS}}$$
+     * Unicode: `C(EFF) = Q(OSS) ÷ V(DS)`
      * Provides a more accurate representation of the MOSFET's behavior at high frequencies than the static `C(OSS)` value.
    * __Switching Loss Formula__
-     * Unicode: `P(SW) ≈ 0.5 ⋅ V(DS)² ⋅ f ⋅ C(OSS_EFF)`
      * Mathjax: $$P_{sw} \approx 0.5 \cdot V_{DS}^2 \cdot f \cdot C_{oss\_eff}$$
+     * Unicode: `P(SW) ≈ 0.5 ⋅ V(DS)² ⋅ f ⋅ C(OSS_EFF)`
      * Estimates power dissipation.
      
 ## Zener diode selection
