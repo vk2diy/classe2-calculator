@@ -91,10 +91,10 @@ A still-cleaner schematic from *Thian* (2009).
 
 ![image](images/thian-2009-inverse.webp)
 
- * Comprised of a transistor, a series inductor, a parallel-tuned resonator, a shunt capacitor, and a load resistance.
-   * The shunt capacitor is required in order to compensate for the fundamental-frequency phase shift.
-   * The DC current passing through the RF choke is transformed by transistor on–off switching action into a series of related fundamental-frequency and harmonic currents.
-   * The harmonic currents are then filtered out by the high-parallel-tuned resonator, leaving only the fundamental-frequency current.
+ * Comprised of a transistor (`Q`), an RF choke inductor (`RFC`), a series inductor (`L`), a parallel-tuned resonator (`C(P)` and `L(P)`), a shunt capacitor (`C`), and a load resistance (`R`).
+   * The shunt capacitor (`C`) is required in order to compensate for the fundamental-frequency phase shift.
+   * The DC current passing through the RF choke (`RFC`) is transformed by transistor (`Q`) on–off switching action into a series of related fundamental-frequency and harmonic currents.
+   * The harmonic currents are then filtered out by the high-parallel-tuned resonator (`C(P)` and `L(P)`), leaving only the fundamental-frequency current.
 
 ## Class E Design equations
 
