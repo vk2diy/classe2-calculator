@@ -21,18 +21,49 @@ The motivation for writing this software was increasing frustration attempting t
 ## Potential output / feature-set / goals
 
  * __Primary schematic__
-   * __Classic Class E designs__
-     * Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
-     * __"Finite" `L1` inductor subtype__ (more complex / modern design)
-     * __"Infinite" `L1` inductor subtype__ (simpler / original design)
-   * __"Inverse" Class E designs__ (or "voltage driven")
-     * Based on zero current switching (ZCS) and zero current derivative switching (ZCDS) conditions
-     * 20% lower peak switching voltage
-     * Lower inductance values (a significant benefit in [MMIC](https://en.wikipedia.org/wiki/Monolithic_microwave_integrated_circuit))
-     * Higher load resistance
-     * Inherent absorption of the transistor’s output inductances including bond wires
-     * Better scope for optimization for high efficiency at higher output power level
-     * Higher peak output power
+   * __Classic "Infinite" inductor subtype__
+     * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
+     * `L1` is at least 10-15x `L2`
+     * Invoke with `-t infinite`
+     * Benefits:
+       * Narrow bandwidth and high selectivity
+       * Simple to design
+       * Well understood in amateur circles
+       * Excellent harmonic suppression.
+     * Drawbacks:
+       * Larger physical size (due to the large RF choke inductor)
+       * Poorly suited to surface mount components
+       * More expensive components
+   * __"Finite" `L1` inductor subtype__
+     * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
+     * `L1` > `L2` and `L1` < 5x`L2`
+     * Invoke with `-t finite`
+     * Benefits:
+       * Compromise between bandwidth and efficiency
+       * Moderate selectivity and good harmonic suppression
+       * Better suited to surface mount components
+       * Physically smaller than classic "infinite" class E
+       * Cheaper components
+     * Drawbacks:
+       * More complex to design
+       * Less well understood in amateur circles
+   * __"Inverse" Class E designs__
+     * "Voltage driven": based on zero current switching (ZCS) and zero current derivative switching (ZCDS) conditions
+     * `L1` < `L2`
+     * Invoke with `-t inverse`
+     * Benefits:
+       * 20% lower peak switching voltage
+       * Lower inductance values
+       * Physically smaller (a significant benefit in [MMIC](https://en.wikipedia.org/wiki/Monolithic_microwave_integrated_circuit))
+       * Higher load resistance
+       * Inherent absorption of the transistor’s output inductances including bond wires
+       * Better scope for optimization for high efficiency at higher output power level
+       * Higher peak output power
+       * Cheaper components
+       * Suitable for high frequency applications such as microwave bands
+     * Drawbacks:
+       * Most complex to design
+       * Poor selectivity and degraded harmonic suppression
    * Maybe later
      * Non-50% duty cycles
      * Class E/F design
