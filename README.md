@@ -46,6 +46,8 @@ The motivation for writing this software was increasing frustration attempting t
 
 ## Class E Schematic
 
+### Classic Sokal / "Infinite" Class E Topology
+
 ![Sokal Class Low Order Class E Power Amplifier Schematic](images/sokal-class-e.webp)
 
 Taken from Sokal (1975).
@@ -66,6 +68,33 @@ Taken from Sokal (1975).
      * Certain bands require higher `QL` factors.
    * `VCC` = DC supply and nominal operating voltage
    * `P` = target output power in watts
+
+Classic Sokal was an infinite or ideal `L1` (RF choke) based design, series tuned, with a shunt capacitor.
+
+A cleaner schematic from *Mury* (2005).
+
+![image](images/mury-2005-topology-a-infinite.webp)
+
+### "Finite" Class E Topology
+
+From *Mury* (2005).
+
+![image](images/mury-2005-topology-b-finite.webp)
+
+### "Inverse" Class E Topology
+
+From *Mury* (2005).
+
+![image](images/mury-2005-topology-c-inverse.webp)
+
+A still-cleaner schematic from *Thian* (2009).
+
+![image](images/thian-2009-inverse.webp)
+
+ * Comprised of a transistor, a series inductor, a parallel-tuned resonator, a shunt capacitor, and a load resistance.
+   * The shunt capacitor is required in order to compensate for the fundamental-frequency phase shift.
+   * The DC current passing through the RF choke is transformed by transistor on–off switching action into a series of related fundamental-frequency and harmonic currents.
+   * The harmonic currents are then filtered out by the high-parallel-tuned resonator, leaving only the fundamental-frequency current.
 
 ## Class E Design equations
 
