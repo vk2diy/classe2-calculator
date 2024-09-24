@@ -18,13 +18,25 @@ The motivation for writing this software was increasing frustration attempting t
    * Zener protection against voltage peaks
  * Produces explainable (well documented) designs which can be readily audited.
 
-## Potential output / feature-set goals
+## Potential output / feature-set / goals
 
  * __Primary schematic__
-   * __Class E design__ ("infinite" `L1` inductor)
-   * Variant class E designs ("finite" `L1` inductor, non-50% duty cycles)
-   * Class E/F design (maybe later)
-   * Class F design (maybe later)
+   * __Classic Class E designs__
+     * Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
+     * __"Finite" `L1` inductor subtype__ (more complex / modern design)
+     * __"Infinite" `L1` inductor subtype__ (simpler / original design)
+   * __"Inverse" Class E designs__ (or "voltage driven")
+     * Based on zero current switching (ZCS) and zero current derivative switching (ZCDS) conditions
+     * 20% lower peak switching voltage
+     * Lower inductance values (a significant benefit in [MMIC](https://en.wikipedia.org/wiki/Monolithic_microwave_integrated_circuit))
+     * Higher load resistance
+     * Inherent absorption of the transistor’s output inductances including bond wires
+     * Better scope for optimization for high efficiency at higher output power level
+     * Higher peak output power
+   * Maybe later
+     * Non-50% duty cycles
+     * Class E/F design
+     * Class F design
  * __Antenna matching networks__
    * __L type__
    * __Pi type__
@@ -56,6 +68,8 @@ Taken from Sokal (1975).
    * `P` = target output power in watts
 
 ## Class E Design equations
+
+### Forenotes
 
 The two most common types of Class E power amplifiers are classified based on the scale of `L1` DC feed inductance. When `L1` is large (to the point of approximating "infinite"), it is termed "infinite". Otherwise, it is termed "finite".
 
@@ -123,7 +137,7 @@ The equations:
        * For very high `QL` values, the `QL` terms become negligible and the equation approaches the ideal Class E case.
        * For lower `QL` values, desirable for bandwidth or other reasons, the additional terms provide the necessary corrections to maintain accuracy.
    * __Basic (infinite) equation__
-     * Mathjax: $$R = \frac{0.5768 V_{DD}^2}{P_{out}}$$
+     * Mathjax: $$R = \frac{0.5768 \cdot V_{DD}^2}{P_{out}}$$
      * Unicode: `R = 0.5768 ⋅ VDD² ÷ P`
      * Assumes a 50% duty cycle.
      * Practical tolerance: ±10-15%
@@ -363,6 +377,16 @@ It pulls in various information from external JSON files.
 | `coss_pf`   | pF   | Output capacitance            |
 | `crss_pf`   | pF   | Reverse transfer capacitance  |
 | `vgs_th_v`  | V    | Gate threshold voltage        |
+
+### Note on interface approach
+
+The traditional unix style command-line interface is typically transactional, which is to say that a particular execution goal is explicitly specified (setting the program "mode" and often all related inputs) and then the program runs and returns its output. This is an approach which works well for specific tasks and is well suited to automation but begins to prove tedious when very high numbers of iterative executions may be required to explore a potential solution space.
+
+Recognising that the design problem for Class E power amplifiers is essentially a system of interdependant equations which may be approached with differing design goals, it would be feasible to turn to mathematics for some high level toolkits for exploring the solution space and determining potentially interesting areas which may be worth reporting. For example, using [iterative methods](https://en.wikipedia.org/wiki/Iterative_method).
+
+However, because we're really just interested in our specific problem at this stage, we'll keep things transactional for simplicity.
+
+There should be at least two levels of verbosity, a standard output-focused mode (default) and a learning-focused verbose mode which shows working.
 
 ## Contributing
 
