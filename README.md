@@ -36,7 +36,7 @@ The motivation for writing this software was increasing frustration attempting t
        * More expensive components
    * __"Finite" `L1` inductor subtype__
      * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
-     * `L1` > `L2` and `L1` < 5x`L2`
+     * `L2 < L1 < 5×L2`
      * Invoke with `-t finite`
      * Benefits:
        * Compromise between bandwidth and efficiency
