@@ -188,7 +188,7 @@ The equations:
      * Judging from source code of the [VK1SV calculator](https://people.physics.anu.edu.au/~dxt103/calculators/class-e.php), this seems to be a variant implementation of *Sokal's improved formula* (2001), with the polynomial formula `f(Q)` substituted in to provide the complete set of terms. The only known difference is that `0.414396` is used in place of the original's `0.414395` — a functionally insignificant difference, yet worth noting.
    * __*Sokal*'s improved formula__ (2001)
      * Mathjax: $$R = K \cdot \frac{(VCC-Vo)^2}{P} \cdot (1 + f(Q))$$
-     * Unicode: `R = K * ((VCC-Vo)² / P) * (1 + f(Q))`
+     * Unicode: `R = K ⋅ ((VCC-Vo)² / P) ⋅ (1 + f(Q))`
      * Where:
        * `K` is a constant and `f(Q)` is a third-order polynomial function of `Q` to provide a closer fit to empirical data.
        * `f(Q)` is a polynomial approximation to account for the effect of the loaded quality factor (`Q`) on the load resistance calculation.
@@ -271,7 +271,7 @@ The equations:
  * `L1` — __RF Choke or DC feed inductance__
    * __*Choi* formula__ (2001)
      * Mathjax: $$L_1 = \frac{k_C \cdot V^2}{f \cdot P} \cdot \left[1 + \frac{k_1}{Q_L} + \frac{k_2}{Q_L^2}\right]$$
-     * Unicode: `L1 = kC * V²/(f ⋅ P) ⋅ (1 + k₁/QL + k₂/QL²)`
+     * Unicode: `L1 = kC ⋅ V²/(f ⋅ P) ⋅ (1 + k₁/QL + k₂/QL²)`
      * Where `kC` is Choi's primary constant `0.2085`, `k₁` is Choi's first `QL` adjustment constant `1.789`, `k₂` is Choi's second `QL` adjustment constant `-1.481`, `V` is the supply voltage in volts, `P` is the desired power output in watts, `f` is the frequency in Hz, and `QL` is the loaded quality factor.
      * This formula by Jaehyeong Choi better accounts for variations in `QL`.
      * Tolerance: Approximately ±2-5%
@@ -290,7 +290,7 @@ The equations:
      * Widely referenced in the amateur radio community.
    * __*Kazimierczuk-Puczko* formula__ (1987) — __NRND__
      * Mathjax: $$L_1 = \frac{K_{KP} \cdot V^2}{f \cdot P}$$
-     * Unicode: `L1 = kKP * V²/(f * P)`
+     * Unicode: `L1 = kKP ⋅ V²/(f ⋅ P)`
      * Where `kKP` is the Kazimierczuk-Puczko constant (0.2116) which is an optimized coefficient based on ideal Class E operation, `V` is the supply voltage in volts, `P` is the desired power output in watts and `f` is the frequency in Hz.
      * Antique formula from Kazimierczuk and Puczko's 1987 paper which is no longer recommended.
      * At the time of its publication, the formula provided an improvement over Sokal's formula by considering the loaded quality factor (`QL`).
@@ -375,7 +375,7 @@ The equations:
      * Traditional metric for MOSFET selection - does not function well at high frequencies.
    * __High Frequency Figure of Merit (HFFOM)__
      * Mathjax: $$HF-FOM = R_{DS(ON)} \cdot C_{OSS}$$
-     * Unicode: `HFFOM = RDS(ON) C(OSS)`
+     * Unicode: `HFFOM = RDS(ON) ⋅ C(OSS)`
      * Revised formula to account for the increased significance of output gate capacitance at high switching frequencies.
    * __Baliga's Figure of Merit (BFOM)__
      * Mathjax: $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
