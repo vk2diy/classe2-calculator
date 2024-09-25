@@ -1,6 +1,6 @@
 # classe2-calculator
 
-__classe2-calculator__ calculates [Class E Power Amplifier](https://en.wikipedia.org/wiki/Power_amplifier_classes#Class_E) circuit component values in order to assist with the practical design of Class E Power Amplifier based circuits for RF communication, plasma control, or any other application. It is pronounced "[classi](https://en.wiktionary.org/wiki/classy#Adjective)[*er*](https://en.wiktionary.org/wiki/%E4%BA%8C#Pronunciation)", as an English-Mandarin [*portmanteau*](https://en.wikipedia.org/wiki/Blend_word).
+__classe2-calculator__ calculates [Class-E Power Amplifier](https://en.wikipedia.org/wiki/Power_amplifier_classes#Class_E) circuit component values in order to assist with the practical design of Class-E Power Amplifier based circuits for RF communication, plasma control, or any other application. It is pronounced "[classi](https://en.wiktionary.org/wiki/classy#Adjective)[*er*](https://en.wiktionary.org/wiki/%E4%BA%8C#Pronunciation)", as an English-Mandarin [*portmanteau*](https://en.wikipedia.org/wiki/Blend_word).
 
 ## Why?
 
@@ -75,7 +75,7 @@ The motivation for writing this software was increasing frustration attempting t
        * Parasitic effects
        * Power handling limitations
        * Thermal management
-   * __"Inverse" Class E designs__
+   * __"Inverse" Class-E designs__
      * "Voltage driven": based on zero current switching (ZCS) and zero current derivative switching (ZCDS) conditions
      * Identification: `L1` < `L2`
      * Invoke with `-t inverse`
@@ -95,11 +95,14 @@ The motivation for writing this software was increasing frustration attempting t
    * Maybe later
      * Non-50% duty cycles
      * Push-Pull Class-E: A dual-ended design that uses two transistors operating 180 degrees out of phase, offering higher power and better even-harmonic suppression.
+     * Differential Class-E: Similar to push-pull.
+     * Outphasing Class-E: Dual Class-E amplifiers to implement a derivative of the Chireix outphasing technique allowing for efficient power control and linearization. 
      * Class-E with parallel circuit: Parallel resonant circuit in the load network offer advantages in certain applications.
      * Class-E with reactive impedance: Additional reactive components shape the load impedance, potentially improving performance or flexibility.
      * Class-E with resistive impedance: A resistive component in the load network, useful for certain design constraints or applications.
      * Class-E with second harmonic peaking: Deliberately introduces second harmonic components to reshape the voltage waveform and potentially improve efficiency.
      * Class-E/F: Hybrid topology combining features of Class-E and Class-F, improving efficiency by shaping both voltage and current waveforms.
+     * Class-E/F Push-Pull: Dual-ended variant of the previous topology.
      * Class-E/F2,3: Specific variant of the Class-E/F family that uses second and third harmonic tuning to shape the waveforms.
      * Class-EF: Hybrid topology that incorporates aspects of both Class-E and Class-F designs to achieve high efficiency over a wider bandwidth.
      * Class-EM: Transmission line replaces some lumped elements in the load network, potentially allowing higher frequency operation.
@@ -113,11 +116,11 @@ The motivation for writing this software was increasing frustration attempting t
  * SPICE simulation source (maybe later)
  * Coil core / winding instructions (maybe later)
 
-## Class E Schematic
+## Class-E Schematic
 
-### Classic Sokal / "Infinite" Class E Topology
+### Classic Sokal / "Infinite" Class-E Topology
 
-![Sokal Class Low Order Class E Power Amplifier Schematic](images/sokal-class-e.webp)
+![Sokal Class Low Order Class-E Power Amplifier Schematic](images/sokal-class-e.webp)
 
 Taken from Sokal (1975).
 
@@ -153,13 +156,13 @@ A cleaner schematic from *Mury* (2005).
 
 ![image](images/mury-2005-topology-a-infinite.webp)
 
-### "Finite" Class E Topology
+### "Finite" Class-E Topology
 
 From *Mury* (2005).
 
 ![image](images/mury-2005-topology-b-finite.webp)
 
-### "Inverse" Class E Topology
+### "Inverse" Class-E Topology
 
 From *Mury* (2005).
 
@@ -174,11 +177,11 @@ A still-cleaner schematic from *Thian* (2009).
    * The DC current passing through the RF choke (`RFC`) is transformed by transistor (`Q`) on–off switching action into a series of related fundamental-frequency and harmonic currents.
    * The harmonic currents are then filtered out by the high-parallel-tuned resonator (`C(P)` and `L(P)`), leaving only the fundamental-frequency current.
 
-## Class E Design equations
+## Class-E Design equations
 
 ### Forenotes
 
-The two most common types of Class E power amplifiers are classified based on the scale of `L1` DC feed inductance. When `L1` is large (to the point of approximating "infinite"), it is termed "infinite". Otherwise, it is termed "finite".
+The two most common types of Class-E power amplifiers are classified based on the scale of `L1` DC feed inductance. When `L1` is large (to the point of approximating "infinite"), it is termed "infinite". Otherwise, it is termed "finite".
 
 |                            | "Infinite"                         | "Finite"                         |
 | -------------------------- | ---------------------------------- | -------------------------------- |
@@ -241,7 +244,7 @@ The equations:
      * Where `k1` is Raab's first curve-fitting constant of `0.576801`, `k2` is Raab's second curve-fitting constant of `-0.451759`, `k3` is Raab's third curve-fitting constant of `-0.402444`, `VCC` is the supply voltage in volts, `P` is the desired output power in watts, `QL` is the loaded quality factor, and `Vo` is the minimum voltage across the switch ("saturation voltage").
      * Improves accuracy by including the effects of `QL` on the relationship between supply voltage, output power, and load resistance.
      * The inclusion of `QL` allows the equation to be used for both high-Q and low-Q designs.
-       * For very high `QL` values, the `QL` terms become negligible and the equation approaches the ideal Class E case.
+       * For very high `QL` values, the `QL` terms become negligible and the equation approaches the ideal Class-E case.
        * For lower `QL` values, desirable for bandwidth or other reasons, the additional terms provide the necessary corrections to maintain accuracy.
    * __Basic (infinite) equation__
      * Mathjax: $$R = \frac{0.5768 \cdot V_{DD}^2}{P_{out}}$$
@@ -329,7 +332,7 @@ The equations:
    * __*Kazimierczuk-Puczko* formula__ (1987) — __NRND__
      * Mathjax: $$L_1 = \frac{K_{KP} \cdot V^2}{f \cdot P}$$
      * Unicode: `L1 = kKP ⋅ V²/(f ⋅ P)`
-     * Where `kKP` is the Kazimierczuk-Puczko constant (0.2116) which is an optimized coefficient based on ideal Class E operation, `V` is the supply voltage in volts, `P` is the desired power output in watts and `f` is the frequency in Hz.
+     * Where `kKP` is the Kazimierczuk-Puczko constant (0.2116) which is an optimized coefficient based on ideal Class-E operation, `V` is the supply voltage in volts, `P` is the desired power output in watts and `f` is the frequency in Hz.
      * Antique formula from Kazimierczuk and Puczko's 1987 paper which is no longer recommended.
      * At the time of its publication, the formula provided an improvement over Sokal's formula by considering the loaded quality factor (`QL`).
    * __*Sokal* formula__ (1975) — __NRND__
@@ -377,7 +380,7 @@ The equations:
      * Practical tolerance: ±8-12%
 
  * `Q` — __Quality factor__
-   * Typical values in Class E amplifiers range from 1.8 to 5 for practical implementations, with 3 to 5 being common for narrow-band applications.
+   * Typical values in Class-E amplifiers range from 1.8 to 5 for practical implementations, with 3 to 5 being common for narrow-band applications.
    * Lower values (around 1.8 to 3) are often used for broadband applications or when component tolerances are a concern.
    * Higher values (3-5) are often used for narrowband applications or when precision components are available.
    * The choice affects other circuit parameters, such as the shunt capacitance and the overall power output capability of the amplifier.
@@ -470,7 +473,7 @@ In a different case where a negligible capacitance value zener diode is unavaila
 It pulls in various information from external JSON files.
 
  * __components.json__: Contains common sizes for capacitors and inductors, and common zener diode voltage cutoffs used in generating proposed circuits.
- * __transistors.json__: Contains detailed properties of MOSFETs used as the Class E Power Amplifier switching device as follows:
+ * __transistors.json__: Contains detailed properties of MOSFETs used as the Class-E Power Amplifier switching device as follows:
 
 | Name        | Unit | Property                      |
 | ----------- | ---- | ----------------------------- |
@@ -487,7 +490,7 @@ It pulls in various information from external JSON files.
 
 The traditional unix style command-line interface is typically transactional, which is to say that a particular execution goal is explicitly specified (setting the program "mode" and often all related inputs) and then the program runs and returns its output. This is an approach which works well for specific tasks and is well suited to automation but begins to prove tedious when very high numbers of iterative executions may be required to explore a potential solution space.
 
-Recognising that the design problem for Class E power amplifiers is essentially a system of interdependant equations which may be approached with differing design goals, it would be feasible to turn to mathematics for some high level toolkits for exploring the solution space and determining potentially interesting areas which may be worth reporting. For example, using [iterative methods](https://en.wikipedia.org/wiki/Iterative_method).
+Recognising that the design problem for Class-E power amplifiers is essentially a system of interdependant equations which may be approached with differing design goals, it would be feasible to turn to mathematics for some high level toolkits for exploring the solution space and determining potentially interesting areas which may be worth reporting. For example, using [iterative methods](https://en.wikipedia.org/wiki/Iterative_method).
 
 However, because we're really just interested in our specific problem at this stage, we'll keep things transactional for simplicity.
 
