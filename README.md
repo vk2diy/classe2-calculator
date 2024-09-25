@@ -23,7 +23,7 @@ The motivation for writing this software was increasing frustration attempting t
  * __Primary schematic__
    * __Classic "Infinite" inductor subtype__
      * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
-     * `L1` is at least 10-15x `L2`
+     * Identification: `L1 > (~10-15)×L2`
      * Invoke with `-t infinite`
      * Benefits:
        * Narrow bandwidth and high selectivity
@@ -36,7 +36,9 @@ The motivation for writing this software was increasing frustration attempting t
        * More expensive components
    * __"Finite" `L1` inductor subtype__
      * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
-     * `L2 < L1 < 5×L2`
+     * Identification: `L2 < L1 < 5×L2`
+     * Key differences:
+       * Smaller and cheaper inductor, more suited to surface mount manufacturing
      * Invoke with `-t finite`
      * Benefits:
        * Compromise between bandwidth and efficiency
@@ -47,9 +49,35 @@ The motivation for writing this software was increasing frustration attempting t
      * Drawbacks:
        * More complex to design
        * Less well understood in amateur circles
+   * __Shunt capacitance and shunt filter subtype__
+     * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
+     * Identification: Addition of `L0`, sometimes no `L1` at all
+     * Key differences:
+       * Replaces the series filter with a shunt filter (`L0`), typically an LC circuit (ie. inductor plus capacitor), which can serve a dual purpose as DC-feed inductance.
+       * Incorporates both shunt capacitance `C` (to absorb output capacitance) and series inductance `L` (to absorb output inductance)
+       * In some cases, removes the RF Choke (`L1`) entirely
+     * Invoke with `-t shunt`
+       * `-o norfc` — remove the RF Choke (`L1`) entirely, by having `L0` take on a dual purpose role as DC-feed inductance, result in a more compact design
+       * `-o srx` — include a series reactance `X` compensation, to increase suitability for broadband operation
+       * `-o nocx` — remove the capacitance `CX` that is usually placed in parallel with the shunt filter and load resistance
+     * Benefits:
+       * Higher maximum operating frequency (fmax) compared to the classical Class-E PA and other variants.
+       * Peak switch voltage does not grow as fast with increases in the quality factor under load (`QL`) as with traditional topologies, allowing higher frequency or power operations.
+       * Better harmonic suppression
+       * Option to remove the RF Choke (`L1`) entirely
+       * Smaller inductance values result in a physically smaller and cheaper design with lower ESR
+     * Drawbacks:
+       * Complexity
+       * Bandwidth limitations
+       * Harmonic control
+       * Impedance matching complexity
+       * Manufacturability
+       * Parasitic effects
+       * Power handling limitations
+       * Thermal management
    * __"Inverse" Class E designs__
      * "Voltage driven": based on zero current switching (ZCS) and zero current derivative switching (ZCDS) conditions
-     * `L1` < `L2`
+     * Identification: `L1` < `L2`
      * Invoke with `-t inverse`
      * Benefits:
        * 20% lower peak switching voltage
@@ -66,8 +94,18 @@ The motivation for writing this software was increasing frustration attempting t
        * Poor selectivity and degraded harmonic suppression
    * Maybe later
      * Non-50% duty cycles
-     * Class E/F design
-     * Class F design
+     * Push-Pull Class-E: A dual-ended design that uses two transistors operating 180 degrees out of phase, offering higher power and better even-harmonic suppression.
+     * Class-E with parallel circuit: Parallel resonant circuit in the load network offer advantages in certain applications.
+     * Class-E with reactive impedance: Additional reactive components shape the load impedance, potentially improving performance or flexibility.
+     * Class-E with resistive impedance: A resistive component in the load network, useful for certain design constraints or applications.
+     * Class-E with second harmonic peaking: Deliberately introduces second harmonic components to reshape the voltage waveform and potentially improve efficiency.
+     * Class-E/F: Hybrid topology combining features of Class-E and Class-F, improving efficiency by shaping both voltage and current waveforms.
+     * Class-E/F2,3: Specific variant of the Class-E/F family that uses second and third harmonic tuning to shape the waveforms.
+     * Class-EF: Hybrid topology that incorporates aspects of both Class-E and Class-F designs to achieve high efficiency over a wider bandwidth.
+     * Class-EM: Transmission line replaces some lumped elements in the load network, potentially allowing higher frequency operation.
+     * Class-E3: Third harmonic peaking variant that aims to further optimize the switching conditions and efficiency.
+     * Class-F design
+
  * __Antenna matching networks__
    * __L type__
    * __Pi type__
