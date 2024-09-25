@@ -242,23 +242,28 @@ The equations:
      * Provides more accurate results for real-world choke inductances.
      * Practical tolerance: ±8-12%
 
- * `L` — __Series inductance__
+ * `L2` — __Variously termed series/output/resonator/tank inductance__
    * Optimal series inductance is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
+   * __*Raab* formula__ (2001)
+     * Mathjax: $$L_2 = \frac{Q_L \cdot R}{2\pi f}$$
+     * Unicode: `L2 = (QL ⋅ R) ÷ 2πf`
+     * Where `QL` is the loaded quality factor, `R` is the load resistance, and `f` is the operating frequency in Hz.
+     * This equation represents an improvement by explicitly including `QL`, allowing more accurate calculation of `L2` for different loaded `Q` values. Previously, `L2` was often calculated assuming an infinite `Q`.
    * __Basic (infinite) equation__
-     * Mathjax: $$L = \frac{1.15R}{2\pi f}$$
-     * Unicode: `L = 1.15R ÷ 2πf`
+     * Mathjax: $$L_2 = \frac{1.15R}{2\pi f}$$
+     * Unicode: `L2 = 1.15R ÷ 2πf`
      * Exact value for 50% duty cycle, infinite choke inductance
      * Practical tolerance: ±10-15%
    * __Duty cycle variant__
-     * Mathjax: $$L = \frac{k_L R}{2\pi f}$$
-     * Unicode: `L = (kL ⋅ R) ÷ 2πf`
+     * Mathjax: $$L_2 = \frac{k_L R}{2\pi f}$$
+     * Unicode: `L2 = (kL ⋅ R) ÷ 2πf`
      * Where `kL` is a coefficient dependent on duty cycle.
      * Enables designs with non-50% duty cycles.
      * Practical tolerance: ±8-12%
      * Inductance has an inverse relationship to duty cycle, ie. it increases as the duty cycle lowers, and decreases as the duty cycle increases.
    * __Finite DC feed inductance variant__
-     * Mathjax: $$L = \frac{1.15R}{2\pi f} \cdot h(Q_L)$$
-     * Unicode: `L = 1.15R ÷ 2πf ⋅ h(QL)`
+     * Mathjax: $$L_2 = \frac{1.15R}{2\pi f} \cdot h(Q_L)$$
+     * Unicode: `L2 = 1.15R ÷ 2πf ⋅ h(QL)`
      * Where `h(QL)` is a correction factor based on loaded `Q`. It is usually less than one, reducing the required inductance.
      * Provides more accurate results for real-world choke inductances.
      * Practical tolerance: ±5-10%
@@ -308,13 +313,6 @@ The equations:
      * Optimizes efficiency for finite choke inductance designs.
      * Provides a balance between size and performance.
      * Practical tolerance: ±5-10%
-
- * `L2` — __Resonator inductance__ (aka "output inductor", aka "tank inductor")
-   * __*Raab* formula__ (2001)
-     * Mathjax: $$L_2 = \frac{Q_L \cdot R}{2\pi f}$$
-     * Unicode: `L2 = (QL ⋅ R) ÷ 2πf`
-     * Where `QL` is the loaded quality factor, `R` is the load resistance, and `f` is the operating frequency in Hz.
-     * This equation represents an improvement by explicitly including `QL`, allowing more accurate calculation of `L2` for different loaded `Q` values. Previously, `L2` was often calculated assuming an infinite `Q`.
 
  * `C2` — __Series capacitance__
    * Optimal series capacitance is a function of frequency and of the optimal load resistance, and therefore in turn the supply voltage and the desired output power.
