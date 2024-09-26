@@ -415,7 +415,7 @@ The equations:
      * Unicode: `FOM = RDS(ON) ⋅ Q(g)`
      * English: "The Figure of Merit is equal to the product of the on resistance (in ohm-square centimeters) and the gate charge (in nanocoulombs)"
      * Where:
-       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `RDS(ON)` is the on resistance of the device, in ohms
        * `Q(g)` is the gate charge, in nanocoulombs (nC)
        * `FOM` is expressed in the unit ohm-coulombs (Ω⋅C) or volt-seconds (V⋅s) which are equivalent.
      * Traditional metric for MOSFET selection - falling out of favour, as it does not function well at high frequencies and does not take in to account other parameters which may be more significant in many applications.
@@ -424,7 +424,7 @@ The equations:
      * Unicode: `HFFOM = RDS(ON) ⋅ C(OSS)`
      * English: "The High Frequency Figure of Merit is equal to the device on resistance (in ohm-square centimeters) multiplied by the output capacitance (in farads)"
      * Where:
-       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `RDS(ON)` is the on resistance of the device, in ohms
        * `C(OSS)` is the output capacitance of the device, in farads (F)
          * However, as the figure is usually provided in the device datasheet as a value expressed in picofarads (pF), first divide the value in pF by 1,000,000,000,000 (1 trillion).
      * Revised formula to account for the increased significance of output gate capacitance at high switching frequencies.
@@ -433,7 +433,7 @@ The equations:
      * Unicode: `BFOM = 1 ÷ (RDS(ON) ⋅ A)`
      * English: "Baliga's Figure of Merit is equal to the inverse of the product of the device on resistance (in ohm-square centimeters) and the active area of the device (in square centimeters)"
      * Where:
-       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `RDS(ON)` is the on resistance of the device, in ohms
        * `A` is the active area of the device, in cm²
      * Note the above is a practical adaptation, the original formula is `BFOM = ε ⋅ μ ⋅ Ec^3` where:
        * `ε` is the dielectric constant of the semiconductor material
@@ -442,18 +442,19 @@ The equations:
    * __Baliga's High Frequency Figure of Merit (BHFFOM)__
      * Mathjax: $$BHFFOM = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
      * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
+     * English: "Baliga's High Frequency Figure of Merit (in hertz-per-ohm) is equal to the inverse of the product of the device on resistance (in ohms) and the device input capacitance (in farads)"
      * Where:
        * The result `BHFFOM` is expressed in units of `1/(Ω⋅F)` or `Hz/Ω`.
-       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `RDS(ON)` is the on resistance of the device, in ohms
        * `C(ISS)` is the input capacitance of the device, in farads (F)
          * However, as the figure is usually provided in the device datasheet as a value expressed in picofarads (pF), first divide the value in pF by 1,000,000,000,000 (1 trillion).
    * __Combined Figure of Merit (CFOM)__
      * Mathjax: $$CFOM = \frac{1}{R_{DS(ON)} \cdot Q_g \cdot C_{OSS}}$$
      * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
-     * English: "The combined figure of merit (in siemens-coulomb-farads) is equal to the inverse of the on resistance (in ohm-square centimeters) times the gate charge (in coulombs) times the output capacitance (in farads)"
+     * English: "The Combined Figure of Merit (in siemens-coulomb-farads) is equal to the inverse of the on resistance (in ohm-square centimeters) times the gate charge (in coulombs) times the output capacitance (in farads)"
      * Where:
        * The result `CFOM` is expressed in units of SCF (siemens-coulomb-farad)
-       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `RDS(ON)` is the on resistance of the device, in ohms
        * `Qg` is the gate charge, usually expressed in coulombs (C)
        * `C(OSS)` is the output capacitance of the device, in farads (F)
          * However, as the figure is usually provided in the device datasheet as a value expressed in picofarads (pF), first divide the value in pF by 1,000,000,000,000 (1 trillion).
