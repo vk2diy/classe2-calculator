@@ -421,6 +421,12 @@ The equations:
    * __Baliga's Figure of Merit (BFOM)__
      * Mathjax: $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
      * Unicode: `BFOM = 1 ÷ (RDS(ON) ⋅ A)`
+     * Where:
+       * `A` is the active area of the device
+     * Note the above is an adapted form, actual formula is `BFOM = ε ⋅ μ ⋅ Ec^3` where:
+       * `ε` is the dielectric constant of the semiconductor material
+       * `μ` is the electron mobility
+       * `Ec` is the critical electric field strength
    * __Baliga's High Frequency Figure of Merit (BHFFOM)__
      * Mathjax: $$BHFFOM = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
      * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
