@@ -391,19 +391,21 @@ The equations:
 
 ### Additional formulae
 
- * `Q(BAND)` — __Quality factor equation__
+ * `Q(BAND)` — __Band quality factor__
    * Used to calculate the nominal `Q` factor of a radio band.
    * A function of band center frequency and aggregate band bandwidth.
    * Mathjax: $$Q_{BAND} = f_0 / \Delta f$$
    * Unicode: `Q(BAND) = f₀ / Δf`
+   * English: "The Band Quality Factor is equal to the center frequency (in Hz) divided by the aggregate bandwidth (in Hz)"
    * Where:
-     * `Q` is the quality factor.
+     * `Q(BAND)` is the band quality factor.
      * `f₀` is the center frequency of the band (in Hz).
      * `Δf` is the aggregate bandwidth of the band (in Hz), typically measured at -3dB points.
  * `C(DRAINMAX)` — __Maximum MOSFET Drain Capacitance__
    * Maximum MOSFET drain capacitance is a function of frequency and load resistance.
    * Mathjax: $$C_{DRAINMAX} = \frac{1}{2\pi f \cdot R_{LOAD}}$$
    * Unicode: `C(DRAINMAX) = k / (2πf ⋅ R(LOAD))`
+   * English: ""
    * Where:
      * `k` is a scaling factor (typically between 1 (possibly unworkable at high frequencies) and 4, with 3 as a suggested default at high frequencies)
      * `f` is the operating frequency in Hz
@@ -413,7 +415,7 @@ The equations:
    * __Figure of Merit (FOM)__ (*"Figure of Malady"*)
      * Mathjax: $$FOM = R_{DS(ON)} \cdot Q_g$$
      * Unicode: `FOM = RDS(ON) ⋅ Q(g)`
-     * English: "The Figure of Merit is equal to the product of the on resistance (in ohm-square centimeters) and the gate charge (in nanocoulombs)"
+     * English: "The Figure of Merit is equal to the product of the on resistance (in ohms) and the gate charge (in nanocoulombs)"
      * Where:
        * `RDS(ON)` is the on resistance of the device, in ohms
        * `Q(g)` is the gate charge, in nanocoulombs (nC)
@@ -422,7 +424,7 @@ The equations:
    * __Baliga's Figure of Merit (BFOM)__
      * Mathjax: $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
      * Unicode: `BFOM = 1 ÷ (RDS(ON) ⋅ A)`
-     * English: "Baliga's Figure of Merit is equal to the inverse of the product of the device on resistance (in ohm-square centimeters) and the active area of the device (in square centimeters)"
+     * English: "Baliga's Figure of Merit is equal to the inverse of the product of the device on resistance (in ohms) and the active area of the device (in square centimeters)"
      * Where:
        * The result `BFOM` is the figure of merit. Higher values are better.
        * `RDS(ON)` is the on resistance of the device, in ohms
@@ -443,7 +445,7 @@ The equations:
    * __Conduction Figure of Merit (CFOM)__ (*"Conduction Figure of Malady"*)
      * Mathjax: $$CFOM = \frac{1}{R_{DS(ON)} \cdot Q_g \cdot C_{OSS}}$$
      * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
-     * English: "The Conduction Figure of Merit (in siemens-coulomb-farads) is equal to the inverse of the on resistance (in ohm-square centimeters) times the gate charge (in coulombs) times the output capacitance (in farads)"
+     * English: "The Conduction Figure of Merit (in siemens-coulomb-farads) is equal to the inverse of the on resistance (in ohms) times the gate charge (in coulombs) times the output capacitance (in farads)"
      * Where:
        * The result `CFOM` is expressed in units of SCF (siemens-coulomb-farad). As lower values are better, perhaps the metric would be better termed *Conduction Figure of Malady*.
        * `RDS(ON)` is the on resistance of the device, in ohms
