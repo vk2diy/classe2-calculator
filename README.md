@@ -445,7 +445,7 @@ The equations:
      * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
      * English: "The Conduction Figure of Merit (in siemens-coulomb-farads) is equal to the inverse of the on resistance (in ohm-square centimeters) times the gate charge (in coulombs) times the output capacitance (in farads)"
      * Where:
-       * The result `CFOM` is expressed in units of SCF (siemens-coulomb-farad). as lower values are better, perhaps the metric would be better termed *Conduction Figure of Malady*.
+       * The result `CFOM` is expressed in units of SCF (siemens-coulomb-farad). As lower values are better, perhaps the metric would be better termed *Conduction Figure of Malady*.
        * `RDS(ON)` is the on resistance of the device, in ohms
        * `Qg` is the gate charge, usually expressed in coulombs (C)
        * `C(OSS)` is the output capacitance of the device, in farads (F)
