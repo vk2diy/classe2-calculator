@@ -26,14 +26,14 @@ The motivation for writing this software was increasing frustration attempting t
      * Identification: `L1 > (~10-15)×L2`
      * Invoke with `-t infinite`
      * Benefits:
-       * Narrow bandwidth and high selectivity
        * Simple to design
        * Well understood in amateur circles
        * Excellent harmonic suppression.
      * Drawbacks:
        * Larger physical size (due to the large RF choke inductor)
-       * Poorly suited to surface mount components
-       * More expensive components
+       * Poorly suited to surface mount components, therefore not very manufacturable
+       * More expensive components and assembly
+       * Higher ESR losses
    * __"Finite" `L1` inductor subtype__
      * "Current driven": Based on zero voltage switching (ZVS) and zero voltage derivative switching (ZVDS) conditions
      * Identification: `L2 < L1 < 5×L2`
@@ -201,7 +201,7 @@ The two most common types of Class-E power amplifiers are classified based on th
 |        Load transformation | No                                 | Yes                              |
 
 Generalities:
- * The sharper the resonance (higher `Q`), the sharper resonance peaks and greater sensitivity, and the more critical it is to have accurate `C1` and `C2`.
+ * The sharper the resonance (higher `Q`) the greater the sensitivity, but the more critical it is to have accurate `C1` and `C2`.
  * Some bands require higher `Q` than others
  * Most amateur radio projects seem to assume hand-wound coils which are relatively unsuitable for finite induction variants
 
