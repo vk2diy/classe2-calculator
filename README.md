@@ -413,34 +413,71 @@ The equations:
    * __Figure of Merit (FOM)__
      * Mathjax: $$FOM = R_{DS(ON)} \cdot Q_g$$
      * Unicode: `FOM = RDS(ON) ⋅ Q(g)`
-     * Traditional metric for MOSFET selection - does not function well at high frequencies.
+     * English: "The Figure of Merit is equal to the product of the on resistance (in ohm-square centimeters) and the gate charge (in nanocoulombs)"
+     * Where:
+       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `Q(g)` is the gate charge, in nanocoulombs (nC)
+       * `FOM` is expressed in the unit ohm-coulombs (Ω⋅C) or volt-seconds (V⋅s) which are equivalent.
+     * Traditional metric for MOSFET selection - falling out of favour, as it does not function well at high frequencies and does not take in to account other parameters which may be more significant in many applications.
    * __High Frequency Figure of Merit (HFFOM)__
      * Mathjax: $$HF-FOM = R_{DS(ON)} \cdot C_{OSS}$$
      * Unicode: `HFFOM = RDS(ON) ⋅ C(OSS)`
+     * English: "The High Frequency Figure of Merit is equal to the device on resistance (in ohm-square centimeters) multiplied by the output capacitance (in farads)"
+     * Where:
+       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `C(OSS)` is the output capacitance of the device, in farads (F)
+         * However, as the figure is usually provided in the device datasheet as a value expressed in picofarads (pF), first divide the value in pF by 1,000,000,000,000 (1 trillion).
      * Revised formula to account for the increased significance of output gate capacitance at high switching frequencies.
    * __Baliga's Figure of Merit (BFOM)__
      * Mathjax: $$BFOM = \frac{1}{R_{DS(ON)} \cdot A}$$
      * Unicode: `BFOM = 1 ÷ (RDS(ON) ⋅ A)`
+     * English: "Baliga's Figure of Merit is equal to the inverse of the product of the device on resistance (in ohm-square centimeters) and the active area of the device (in square centimeters)"
      * Where:
-       * `A` is the active area of the device
-     * Note the above is an adapted form, actual formula is `BFOM = ε ⋅ μ ⋅ Ec^3` where:
+       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `A` is the active area of the device, in cm²
+     * Note the above is a practical adaptation, the original formula is `BFOM = ε ⋅ μ ⋅ Ec^3` where:
        * `ε` is the dielectric constant of the semiconductor material
        * `μ` is the electron mobility
        * `Ec` is the critical electric field strength
    * __Baliga's High Frequency Figure of Merit (BHFFOM)__
      * Mathjax: $$BHFFOM = \frac{1}{R_{DS(ON)} \cdot C_{iss}}$$
      * Unicode: `BHFFOM = 1 ÷ (RDS(ON) ⋅ C(ISS))`
+     * Where:
+       * The result `BHFFOM` is expressed in units of `1/(Ω⋅F)` or `Hz/Ω`.
+       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `C(ISS)` is the input capacitance of the device, in farads (F)
+         * However, as the figure is usually provided in the device datasheet as a value expressed in picofarads (pF), first divide the value in pF by 1,000,000,000,000 (1 trillion).
    * __Combined Figure of Merit (CFOM)__
      * Mathjax: $$CFOM = \frac{1}{R_{DS(ON)} \cdot Q_g \cdot C_{OSS}}$$
      * Unicode: `CFOM = (1 / RDS(ON)) ⋅ Qg ⋅ C(OSS)`
+     * English: "The combined figure of merit (in siemens-coulomb-farads) is equal to the inverse of the on resistance (in ohm-square centimeters) times the gate charge (in coulombs) times the output capacitance (in farads)"
+     * Where:
+       * The result `CFOM` is expressed in units of SCF (siemens-coulomb-farad)
+       * `RDS(ON)` is the on resistance of the device, in Ω⋅cm² (ohm-square centimeters)
+       * `Qg` is the gate charge, usually expressed in coulombs (C)
+       * `C(OSS)` is the output capacitance of the device, in farads (F)
+         * However, as the figure is usually provided in the device datasheet as a value expressed in picofarads (pF), first divide the value in pF by 1,000,000,000,000 (1 trillion).
    * __Effective Capacitance__
      * Mathjax: $$C_{EFF} = \frac{Q_{OSS}}{V_{DS}}$$
      * Unicode: `C(EFF) = Q(OSS) ÷ V(DS)`
+     * English: "The effective output capacitance (in farads) is equal to the output charge (in coulombs) divided by the drain-to-source voltage (in volts)"
+     * Where:
+       * `C(EFF)` is the effective output capacitance, in farads (F)
+       * `Q(OSS)` is the output charge, in coulombs (C)
+       * `V(DS)` is the drain-to-source voltage, in volts (V)
      * Provides a more accurate representation of the MOSFET's behavior at high frequencies than the static `C(OSS)` value.
    * __Switching Loss Formula__
      * Mathjax: $$P_{sw} \approx 0.5 \cdot V_{DS}^2 \cdot f \cdot C_{oss\_eff}$$
      * Unicode: `P(SW) ≈ 0.5 ⋅ V(DS)² ⋅ f ⋅ C(OSS_EFF)`
-     * Estimates power dissipation.
+     * English: "The switching loss (in watts) is approximately equal to half of the drain-to-source voltage (in volts) times the switching frequency (in hertz) times the effective output capacitance (in farads)"
+     * Where:
+       * `P(SW)` is the switching loss, in watts (W)
+       * `V(DS)` is the drain-to-source voltage, in volts (V)
+       * `f` is the switching frequency, in hertz (Hz)
+       * `C(OSS_EFF)` is the effective output capacitance, in farads (F)
+     * Therefore:
+       * Losses increase with any of the three input variables, but this relationship is linear for frequency and effective output capacitance, wherease it is square (quadratic) with with voltage.
+     * Estimates power dissipation for a given device and operating frequency.
      
 ## Zener diode selection
 
