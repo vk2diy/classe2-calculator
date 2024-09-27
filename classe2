@@ -1,0 +1,271 @@
+#!/usr/bin/python
+import argparse
+import math
+import json
+import re
+from collections import OrderedDict
+
+class ClassETopologyGenerator:
+    def __init__(self):
+        self.pi = math.pi
+
+    def class_e_topology_generate_finite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q):
+        w0 = 2 * self.pi * center_frequency_hz
+
+        Vo = mosfet_data['vgs_th_v']
+        Coss = mosfet_data['coss_pf'] * 1e-12
+
+        R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
+        C1 = (1 / (34.2219 * center_frequency_hz * R)) * (0.99866 + (0.91424 / Q) - (1.03175 / (Q**2))) - Coss
+        L2 = (1.15 * R) / w0
+        C2 = (1 / (w0 * R)) * (1 / (Q - 0.104823)) * (1.00121 + 1.01468 / (Q - 1.7879))
+        L1 = (0.1836 * R) / w0
+
+        return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R }
+
+    def class_e_topology_generate_infinite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q):
+        w0 = 2 * self.pi * center_frequency_hz
+
+        Vo = 0  # Assume 0V for MOSFETs, or use a small value like 0.1V if desired
+        Coss = mosfet_data['coss_pf'] * 1e-12
+
+        R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
+        C1 = (1 / (34.2219 * center_frequency_hz * R)) * (0.99866 + (0.91424 / Q) - (1.03175 / (Q**2))) - Coss
+        L2 = (Q * R) / w0
+        C2 = (1 / (w0 * R)) * (1 / (Q - 0.104823)) * (1.00121 + 1.01468 / (Q - 1.7879))
+        L1 = ((self.pi**2 + 4) * R) / w0  # Minimum value for L1
+
+        return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R }
+
+    def calculate_operating_parameters(self, pa_vcc_volts, center_frequency_hz, Q, R):
+        peak_vds = pa_vcc_volts * 3.56 / 0.8
+        bandwidth = center_frequency_hz / Q
+
+        # Estimate harmonics (simplified model)
+        second_harmonic = -20 * math.log10(Q)  # dB below fundamental
+        third_harmonic = -30 * math.log10(Q)   # dB below fundamental
+
+        return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic }
+
+def load_frequency_bands(filename):
+    with open(filename, 'r') as f:
+        return json.load(f)
+
+def calculate_center_frequency_and_bandwidth(band_data):
+    center_freq = (band_data['start'] + band_data['end']) / 2
+    bandwidth = band_data['end'] - band_data['start']
+    return center_freq * 1e6, bandwidth * 1e6  # Convert to Hz
+
+def format_number_for_clarity(value_str):
+    match = re.match(r'^(-?\d*\.?\d+)\s*(.*)$', value_str)
+    if match:
+        numeric_part, suffix = match.groups()
+    else:
+        return value_str
+
+    # Remove trailing zeros after the decimal point for the numeric part
+    if '.' in numeric_part:
+        numeric_part = numeric_part.rstrip('0').rstrip('.')
+
+    # If the result is just "0.", change it to "0"
+    if numeric_part == "0.":
+        numeric_part = "0"
+
+    # Rejoin the numeric part with the suffix
+    return numeric_part + suffix
+
+def format_inductance_value(value):
+    if value >= 1:
+        return format_number_for_clarity(f"{value:.3f}H")
+    elif value >= 1e-3:
+        return format_number_for_clarity(f"{value*1e3:.3f}mH")
+    elif value >= 1e-6:
+        return format_number_for_clarity(f"{value*1e6:.3f}µH")
+    else:
+        return format_number_for_clarity(f"{value*1e9:.3f}nH")
+
+def format_capacitance_value(value):
+    if value >= 1e-3:
+        return format_number_for_clarity(f"{value*1e3:.3f}mF")
+    elif value >= 1e-6:
+        return format_number_for_clarity(f"{value*1e6:.3f}µF")
+    elif value >= 1e-9:
+        return format_number_for_clarity(f"{value*1e9:.3f}nF")
+    else:
+        return format_number_for_clarity(f"{value*1e12:.3f}pF")
+
+def format_resistance_value(value):
+    if value >= 1e6:
+        return format_number_for_clarity(f"{value/1e6:.3f}MΩ")
+    elif value >= 1e3:
+        return format_number_for_clarity(f"{value/1e3:.3f}kΩ")
+    else:
+        return format_number_for_clarity(f"{value:.3f}Ω")
+
+def format_frequency_value(value):
+    if value >= 1e9:
+        return format_number_for_clarity(f"{value/1e9:.3f}GHz")
+    elif value >= 1e6:
+        return format_number_for_clarity(f"{value/1e6:.3f}MHz")
+    elif value >= 1e3:
+        return format_number_for_clarity(f"{value/1e3:.3f}kHz")
+    else:
+        return format_number_for_clarity(f"{value:.3f}Hz")
+
+def format_voltage_value(value):
+    if value >= 1e6:
+        return format_number_for_clarity(f"{value/1e6:.3f}MV")
+    elif value >= 1e3:
+        return format_number_for_clarity(f"{value/1e3:.3f}kV")
+    else:
+        return format_number_for_clarity(f"{value:.3f}V")
+
+def format_current_value(value):
+    if value >= 1:
+        return format_number_for_clarity(f"{value:.3f}A")
+    elif value >= 1e-3:
+        return format_number_for_clarity(f"{value*1e3:.3f}mA")
+    elif value >= 1e-6:
+        return format_number_for_clarity(f"{value*1e6:.3f}µA")
+    else:
+        return format_number_for_clarity(f"{value*1e9:.3f}nA")
+
+def format_power_value(value):
+    if value >= 1e9:
+        return format_number_for_clarity(f"{value/1e9:.3f}GW")
+    elif value >= 1e6:
+        return format_number_for_clarity(f"{value/1e6:.3f}MW")
+    elif value >= 1e3:
+        return format_number_for_clarity(f"{value/1e3:.3f}kW")
+    else:
+        return format_number_for_clarity(f"{value:.3f}W")
+
+def format_capacitance_series_string(target_value, component_list):
+    components = recommend_components(target_value, component_list, False)
+    if components:
+        combo, error, total = components[0]
+        return f"{'+'.join(format_capacitance_value(c*1e-12) for c in combo)} " \
+               f"(total: {format_capacitance_value(total)}≈{format_capacitance_value(target_value)}±{format_percentage(error*100)})"
+    return "No suitable combination found"
+
+def format_capacitance_parallel_string(target_value, component_list):
+    components = recommend_components(target_value, component_list, False)
+    if components:
+        combo, error, total = components[0]
+        return f"{' || '.join(format_capacitance_value(c*1e-12) for c in combo)} " \
+               f"(total: {format_capacitance_value(total)}≈{format_capacitance_value(target_value)}±{format_percentage(error*100)})"
+    return "No suitable combination found"
+
+def format_percentage(value):
+    return format_number_for_clarity(f"{value:.2f}%")
+
+def format_number(value, precision=3):
+    if abs(value) < 1e-9:  # Treat very small numbers as zero
+        return "0"
+    formatted = f"{value:.{precision}f}"
+    return formatted.rstrip('0').rstrip('.')
+
+
+def list_available_bands(frequency_bands):
+    for band_id, band_data in frequency_bands.items():
+        start_freq = format_frequency_value(band_data['start'] * 1e6)
+        end_freq = format_frequency_value(band_data['end'] * 1e6)
+        print(f"{band_id}:{start_freq}-{end_freq}")
+
+
+def load_mosfets(filename):
+    with open(filename, 'r') as f:
+        return json.load(f)
+
+def list_available_mosfets(mosfets):
+    print("Available MOSFETs:")
+    sorted_mosfets = OrderedDict(sorted(mosfets.items()))
+    for mosfet_id, mosfet_data in sorted_mosfets.items():
+        mosfet_info = [
+            mosfet_id,
+            mosfet_data.get('lcsc', 'N/A'),
+            f"{mosfet_data.get('vdss_v', 'N/A')}V",
+            f"{mosfet_data.get('id_a', 'N/A')}A",
+            f"{mosfet_data.get('rds_on_o', 'N/A')}Ω",
+            f"{mosfet_data.get('ciss_pf', 'N/A')}pF",
+            f"{mosfet_data.get('coss_pf', 'N/A')}pF",
+            f"{mosfet_data.get('crss_pf', 'N/A')}pF",
+            f"{mosfet_data.get('vgs_th_v', 'N/A')}V"
+        ]
+        print(":".join(mosfet_info))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Class E Topology Generator")
+    parser.add_argument("-t", "--type", choices=["infinite", "finite"], required=True, help="Topology type")
+    parser.add_argument("-p", "--power", type=float, required=True, help="Power desired for output (watts)")
+    parser.add_argument("-v", "--vcc", type=float, required=True, help="PA supply voltage (volts)")
+    parser.add_argument("-b", "--bands", type=str, required=True, help="Comma-separated list of band IDs")
+    parser.add_argument("-m", "--mosfet", type=str, required=True, help="MOSFET model")
+    parser.add_argument("-q", "--q-factor", type=float, default=7, help="Q factor (default: 7)")
+    parser.add_argument("--list-bands", action="store_true", help="List available frequency bands")
+    parser.add_argument("--list-mosfets", action="store_true", help="List available MOSFETs")
+
+    args = parser.parse_args()
+
+    frequency_bands = load_frequency_bands('frequency_bands.json')
+    mosfets = load_mosfets('mosfets.json')
+
+    if args.list_bands:
+        list_available_bands(frequency_bands)
+        return
+
+    if args.list_mosfets:
+        list_available_mosfets(mosfets)
+        return
+
+    if args.mosfet not in mosfets:
+        print(f"Error: MOSFET '{args.mosfet}' not found in mosfets.json")
+        return
+
+    mosfet_data = mosfets[args.mosfet]
+    mosfet_info = f"{args.mosfet} (Vdss={mosfet_data['vdss_v']}V, Id={mosfet_data['id_a']}A, Rds_on={mosfet_data['rds_on_o']}Ω, Ciss={mosfet_data['ciss_pf']}pF, Coss={mosfet_data['coss_pf']}pF, Crss={mosfet_data['crss_pf']}pF, Vgs_th={mosfet_data['vgs_th_v']}V)"
+
+    print("\nInput parameters:")
+    print(f" Output Power = {format_power_value(args.power)}")
+    print(f" Supply Voltage = {format_voltage_value(args.vcc)}")
+    print(f" MOSFET = {mosfet_info}")
+    print(f" Q Factor = {args.q_factor}")
+
+    band_ids = args.bands.split(',')
+
+    generator = ClassETopologyGenerator()
+
+    for band_id in band_ids:
+        if band_id not in frequency_bands:
+            print(f"Warning: Band '{band_id}' not found in frequency_bands.json. Skipping.")
+            continue
+
+        band_data = frequency_bands[band_id]
+        center_freq, bandwidth = calculate_center_frequency_and_bandwidth(band_data)
+
+        if args.type == "infinite":
+            topology = generator.class_e_topology_generate_infinite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor)
+        elif args.type == "finite":
+            topology = generator.class_e_topology_generate_finite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor)
+
+        operating_params = generator.calculate_operating_parameters(args.vcc, center_freq, args.q_factor, topology['R'])
+
+        print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, bw={format_frequency_value(bandwidth)}, q={band_data['q']})")
+        print(f" Topology = {args.type}")
+        if args.type == "infinite":
+            print(f" L1 ≥ {format_inductance_value(topology['L1'])}")
+        elif args.type == "finite":
+            print(f" L1 = {format_inductance_value(topology['L1'])}")
+        print(f" L2 = {format_inductance_value(topology['L2'])}")
+        print(f" C1 = {format_capacitance_value(topology['C1'])}")
+        print(f" C2 = {format_capacitance_value(topology['C2'])}")
+        print(f" R = {format_resistance_value(topology['R'])}")
+        print("\nOperating Parameters:")
+        print(f" Peak Vds = {format_voltage_value(operating_params['peak_vds'])}")
+        print(f" Bandwidth = {format_frequency_value(operating_params['bandwidth'])}")
+        print(f" 2nd Harmonic = {operating_params['second_harmonic']:.2f} dBc")
+        print(f" 3rd Harmonic = {operating_params['third_harmonic']:.2f} dBc")
+
+if __name__ == "__main__":
+    main()
