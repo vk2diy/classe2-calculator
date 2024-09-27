@@ -1,12 +1,13 @@
 {
   "IRF510": {
+    "lcsc": "C727603",
     "vdss_v": 100,
-    "id_a": 4,
+    "id_a": 5.6,
     "rds_on_o": 0.54,
     "ciss_pf": 180,
     "coss_pf": 81,
     "crss_pf": 15,
-    "vgs_th_v": 2.295
+    "vgs_th_v": 3
   },
   "IRF7103PBF": {
     "lcsc": "C27080",
