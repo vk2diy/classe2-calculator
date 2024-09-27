@@ -9,43 +9,64 @@ class ClassETopologyGenerator:
     def __init__(self):
         self.pi = math.pi
 
-    def class_e_topology_generate_finite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q):
+    def class_e_topology_generate_infinite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
         w0 = 2 * self.pi * center_frequency_hz
 
-        Vo = mosfet_data['vgs_th_v']
-        Coss = mosfet_data['coss_pf'] * 1e-12
-
-        R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
-        C1 = (1 / (34.2219 * center_frequency_hz * R)) * (0.99866 + (0.91424 / Q) - (1.03175 / (Q**2))) - Coss
-        L2 = (1.15 * R) / w0
-        C2 = (1 / (w0 * R)) * (1 / (Q - 0.104823)) * (1.00121 + 1.01468 / (Q - 1.7879))
-        L1 = (0.1836 * R) / w0
-
-        return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R }
-
-    def class_e_topology_generate_infinite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q):
-        w0 = 2 * self.pi * center_frequency_hz
-
-        Vo = 0  # Assume 0V for MOSFETs, or use a small value like 0.1V if desired
+        Vo = 0  # Assume 0V for MOSFETs
         Coss = mosfet_data['coss_pf'] * 1e-12
 
         R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
         C1 = (1 / (34.2219 * center_frequency_hz * R)) * (0.99866 + (0.91424 / Q) - (1.03175 / (Q**2))) - Coss
         L2 = (Q * R) / w0
         C2 = (1 / (w0 * R)) * (1 / (Q - 0.104823)) * (1.00121 + 1.01468 / (Q - 1.7879))
-        L1 = ((self.pi**2 + 4) * R) / w0  # Minimum value for L1
 
-        return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R }
+        if L1 is None:
+            L1 = ((self.pi**2 + 4) * R) / w0  # Minimum value for L1
+            L1_status = "calculated"
+        else:
+            L1_min = ((self.pi**2 + 4) * R) / w0
+            L1_status = "user-specified"
+            if L1 < L1_min:
+                print(f"Warning: User-specified L1 ({L1:.2e}H) is less than the calculated minimum ({L1_min:.2e}H)")
+
+        return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R, "L1_status": L1_status }
+
+    def class_e_topology_generate_finite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
+        w0 = 2 * self.pi * center_frequency_hz
+
+        Vo = 0  # Assume 0V for MOSFETs
+        Coss = mosfet_data['coss_pf'] * 1e-12
+
+        R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
+        C1 = (1 / (34.2219 * center_frequency_hz * R)) * (0.99866 + (0.91424 / Q) - (1.03175 / (Q**2))) - Coss
+        L2 = (1.15 * R) / w0
+        C2 = (1 / (w0 * R)) * (1 / (Q - 0.104823)) * (1.00121 + 1.01468 / (Q - 1.7879))
+
+        if L1 is None:
+            L1 = (0.1836 * R) / w0
+            L1_status = "calculated"
+        else:
+            L1_optimal = (0.1836 * R) / w0
+            L1_status = "user-specified"
+            if abs(L1 - L1_optimal) / L1_optimal > 0.1:  # If L1 differs by more than 10% from optimal
+                print(f"Warning: User-specified L1 ({L1:.2e}H) differs significantly from the calculated optimal value ({L1_optimal:.2e}H)")
+
+        return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R, "L1_status": L1_status }
 
     def calculate_operating_parameters(self, pa_vcc_volts, center_frequency_hz, Q, R):
         peak_vds = pa_vcc_volts * 3.56 / 0.8
         bandwidth = center_frequency_hz / Q
-
         # Estimate harmonics (simplified model)
+        # These are rough estimates and may not be accurate for all designs
         second_harmonic = -20 * math.log10(Q)  # dB below fundamental
         third_harmonic = -30 * math.log10(Q)   # dB below fundamental
+        # Calculate drain efficiency (simplified estimate)
+        # This is a theoretical maximum, actual efficiency will be lower
+        drain_efficiency = 100 * (math.pi**2 / 4 + 1) / (math.pi**2 / 2 + 2)  # in percentage
+        # Calculate maximum drain current (simplified estimate)
+        max_drain_current = (2 * math.pi * pa_vcc_volts) / (math.pi**2 * R)
 
-        return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic }
+        return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic, "drain_efficiency": drain_efficiency, "max_drain_current": max_drain_current }
 
 def load_frequency_bands(filename):
     with open(filename, 'r') as f:
@@ -201,6 +222,7 @@ def main():
     parser.add_argument("-p", "--power", type=float, required=True, help="Power desired for output (watts)")
     parser.add_argument("-v", "--vcc", type=float, required=True, help="PA supply voltage (volts)")
     parser.add_argument("-b", "--bands", type=str, required=True, help="Comma-separated list of band IDs")
+    parser.add_argument("-l1", "--l1-value", type=float, help="L1 (RF Choke) inductor value (Henries) [OPTIONAL]")
     parser.add_argument("-m", "--mosfet", type=str, required=True, help="MOSFET model")
     parser.add_argument("-q", "--q-factor", type=float, default=7, help="Q factor (default: 7)")
     parser.add_argument("--list-bands", action="store_true", help="List available frequency bands")
@@ -245,18 +267,21 @@ def main():
         center_freq, bandwidth = calculate_center_frequency_and_bandwidth(band_data)
 
         if args.type == "infinite":
-            topology = generator.class_e_topology_generate_infinite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor)
+            topology = generator.class_e_topology_generate_infinite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor, args.l1_value)
         elif args.type == "finite":
-            topology = generator.class_e_topology_generate_finite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor)
+            topology = generator.class_e_topology_generate_finite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor, args.l1_value)
 
         operating_params = generator.calculate_operating_parameters(args.vcc, center_freq, args.q_factor, topology['R'])
 
         print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, bw={format_frequency_value(bandwidth)}, q={band_data['q']})")
         print(f" Topology = {args.type}")
         if args.type == "infinite":
-            print(f" L1 ≥ {format_inductance_value(topology['L1'])}")
+            if topology['L1_status'] == "user-specified":
+                print(f" L1 = {format_inductance_value(topology['L1'])} (user-specified)")
+            else:
+                print(f" L1 ≥ {format_inductance_value(topology['L1'])} (calculated)")
         elif args.type == "finite":
-            print(f" L1 = {format_inductance_value(topology['L1'])}")
+            print(f" L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
         print(f" L2 = {format_inductance_value(topology['L2'])}")
         print(f" C1 = {format_capacitance_value(topology['C1'])}")
         print(f" C2 = {format_capacitance_value(topology['C2'])}")
