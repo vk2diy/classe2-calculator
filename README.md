@@ -462,7 +462,7 @@ The equations:
        * `V(DS)` is the drain-to-source voltage, in volts (V)
      * Provides a more accurate representation of the MOSFET's behavior at high frequencies than the static `C(OSS)` value.
    * __Switching Loss Formula__
-     * Mathjax: $$P_{sw} \approx 0.5 \cdot V_{DS}^2 \cdot f \cdot C_{oss\_eff}$$
+     * Mathjax: $$P_{sw} \approx 0.5 \cdot V_{DS}^2 \cdot f \cdot C_{oss_{eff}}$$
      * Unicode: `P(SW) ≈ 0.5 ⋅ V(DS)² ⋅ f ⋅ C(OSS_EFF)`
      * English: "The switching loss (in watts) is approximately equal to half of the drain-to-source voltage (in volts) times the switching frequency (in hertz) times the effective output capacitance (in farads)"
      * Where:
