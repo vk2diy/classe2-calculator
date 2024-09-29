@@ -72,6 +72,15 @@ class ClassETopologyGenerator:
 
         return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic, "drain_efficiency": drain_efficiency, "max_drain_current": max_drain_current }
 
+def calculate_auto_q(band_data):
+    f_lower = band_data['start'] * 1e6  # Convert to Hz
+    f_upper = band_data['end'] * 1e6    # Convert to Hz
+    f_center = (f_upper + f_lower) / 2
+    natural_bandwidth = f_upper - f_lower
+    desired_bandwidth = 1.2 * natural_bandwidth
+    auto_q = f_center / desired_bandwidth
+    return auto_q
+
 def parse_inductance(value):
     if value is None:
         return None
@@ -254,7 +263,7 @@ def main():
     parser.add_argument("-v", "--vcc", type=float, help="PA supply voltage (volts)")
     parser.add_argument("-b", "--bands", type=str, help="Comma-separated list of band IDs")
     parser.add_argument("-m", "--mosfet", type=str, help="MOSFET model")
-    parser.add_argument("-q", "--q-factor", type=float, default=7, help="Q factor (default: 7)")
+    parser.add_argument("-q", "--q-factor", type=float, help="Q factor (optional, auto-calculated if not provided)")
     parser.add_argument("-l1", "--l1-value", type=parse_inductance, help="L1 value (e.g., 10uH, 33nH, 22.15uH)")
 
     args = parser.parse_args()
@@ -298,14 +307,19 @@ def main():
         band_data = frequency_bands[band_id]
         center_freq, bandwidth = calculate_center_frequency_and_bandwidth(band_data)
 
+        if args.q_factor is None:
+            q_factor = calculate_auto_q(band_data)
+        else:
+            q_factor = args.q_factor
+
         if args.type == "infinite":
-            topology = generator.class_e_topology_generate_infinite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor, args.l1_value)
+            topology = generator.class_e_topology_generate_infinite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, q_factor, args.l1_value)
         elif args.type == "finite":
-            topology = generator.class_e_topology_generate_finite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, args.q_factor, args.l1_value)
+            topology = generator.class_e_topology_generate_finite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, q_factor, args.l1_value)
 
-        operating_params = generator.calculate_operating_parameters(args.vcc, center_freq, args.q_factor, topology['R'])
+        operating_params = generator.calculate_operating_parameters(args.vcc, center_freq, q_factor, topology['R'])
 
-        print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, bw={format_frequency_value(bandwidth)}, q={band_data['q']})")
+        print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={band_data['q']})")
         print(f" Topology = {args.type}")
 
         if args.type == "infinite":
@@ -323,7 +337,7 @@ def main():
 
         print("\nOperating Parameters:")
         print(f" Peak Vds = {format_voltage_value(operating_params['peak_vds'])}")
-        print(f" Bandwidth = {format_frequency_value(operating_params['bandwidth'])}")
+        #print(f" Bandwidth = {format_frequency_value(operating_params['bandwidth'])}")
         print(f" 2nd Harmonic = {operating_params['second_harmonic']:.2f} dBc")
         print(f" 3rd Harmonic = {operating_params['third_harmonic']:.2f} dBc")
         print(f" Drain Efficiency = {operating_params['drain_efficiency']:.2f}%")
