@@ -18,11 +18,12 @@ class ClassETopologyGenerator:
 
         R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
 
+        L1_min = ((math.pi**2 + 4) * R) / w0
+
         if L1 is None:
             L1 = ((math.pi**2 + 4) * R) / w0  # Minimum value for L1
             L1_status = "calculated"
         else:
-            L1_min = ((math.pi**2 + 4) * R) / w0
             L1_status = "user-specified"
             if L1 < L1_min:
                 print(f"Warning: User-specified L1 ({L1:.2e}H) is less than the calculated minimum ({L1_min:.2e}H)")
