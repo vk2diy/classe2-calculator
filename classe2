@@ -3,6 +3,7 @@ import argparse
 import math
 import json
 import re
+from bisect import bisect_left
 from collections import OrderedDict
 
 class ClassETopologyGenerator:
@@ -71,6 +72,140 @@ class ClassETopologyGenerator:
         max_drain_current = (2 * math.pi * pa_vcc_volts) / (math.pi**2 * R)
 
         return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic, "drain_efficiency": drain_efficiency, "max_drain_current": max_drain_current }
+
+from itertools import combinations_with_replacement
+
+def load_components(filename='components.json'):
+    with open(filename, 'r') as f:
+        return json.load(f)
+
+COMPONENTS = load_components()
+
+def estimate_srf(inductance):
+    return 150e6 / math.sqrt(inductance * 1e6)
+
+def parallel_combination(v1, v2):
+    return (v1 * v2) / (v1 + v2)
+
+def series_combination(*values):
+    return sum(values)
+
+def generate_combinations(target_value, standard_values, max_components=3):
+    combinations = []
+    for i in range(1, max_components + 1):
+        for combo in combinations_with_replacement(standard_values, i):
+            if i == 1:
+                combinations.append((combo[0], 'single'))
+            elif len(set(combo)) == 1:
+                combinations.append((series_combination(*combo), f'{i} in series'))
+                combinations.append((parallel_combination(*combo), f'{i} in parallel'))
+            else:
+                combinations.append((series_combination(*combo), f'{i} mixed series'))
+                combinations.append((parallel_combination(*combo), f'{i} mixed parallel'))
+    return combinations
+
+def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_freq):
+    L2_error = abs(L2 - target_L2) / target_L2
+    C1_error = abs(C1 - target_C1) / target_C1
+    C2_error = abs(C2 - target_C2) / target_C2
+    total_error = L2_error + C1_error + C2_error
+    
+    L2_srf = estimate_srf(L2)
+    srf_margin = L2_srf / center_freq
+    
+    return total_error, srf_margin
+
+def find_closest(arr, target):
+    pos = bisect_left(arr, target)
+    if pos == 0:
+        return arr[0]
+    if pos == len(arr):
+        return arr[-1]
+    before = arr[pos - 1]
+    after = arr[pos]
+    if after - target < target - before:
+        return after
+    else:
+        return before
+
+def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_freq):
+    L2_error = abs(L2 - target_L2) / target_L2
+    C1_error = abs(C1 - target_C1) / target_C1
+    C2_error = abs(C2 - target_C2) / target_C2
+    total_error = L2_error + C1_error + C2_error
+
+    L2_srf = estimate_srf(L2)
+    srf_margin = L2_srf / center_freq
+
+    return total_error, srf_margin
+
+def find_combinations(target, values, max_components=2, tolerance=0.05, is_inductor=False):
+    combinations = []
+
+    # Single component
+    closest = find_closest(values, target)
+    combinations.append((closest, 'single', f'{format_number(closest)}'))
+
+    if max_components >= 2:
+        # Parallel combinations
+        for i, v1 in enumerate(values):
+            for v2 in values[i:]:
+                combined = parallel_combination(v1, v2)
+                if abs(combined - target) / target <= tolerance:
+                    v1_str = format_inductance_value(v1) if is_inductor else format_capacitance_value(v1)
+                    v2_str = format_inductance_value(v2) if is_inductor else format_capacitance_value(v2)
+                    combinations.append((combined, 'parallel', f'{v1_str} || {v2_str}'))
+
+        # Series combinations
+        for i, v1 in enumerate(values):
+            for v2 in values[i:]:
+                combined = series_combination(v1, v2)
+                if abs(combined - target) / target <= tolerance:
+                    v1_str = format_inductance_value(v1) if is_inductor else format_capacitance_value(v1)
+                    v2_str = format_inductance_value(v2) if is_inductor else format_capacitance_value(v2)
+                    combinations.append((combined, 'series', f'{v1_str} + {v2_str}'))
+
+    combinations.sort(key=lambda x: abs(x[0] - target))
+    return combinations[:5]  # Return top 5 combinations
+
+def esr_multiplier(config_type, component_count):
+    if config_type == 'single':
+        return 1
+    elif config_type == 'series':
+        return component_count
+    elif config_type == 'parallel':
+        return 1 / component_count
+    else:
+        return 1  # Default case
+
+def current_multiplier(config_type, component_count):
+    if config_type == 'single':
+        return 1
+    elif config_type == 'series':
+        return 1 / component_count
+    elif config_type == 'parallel':
+        return component_count
+    else:
+        return 1  # Default case
+
+def find_best_configurations(target_L2, target_C1, target_C2, center_freq, num_results=3):
+    L2_values = [x * 1e-6 for x in COMPONENTS['inductors_uh']]
+    C_values = [x * 1e-12 for x in COMPONENTS['capacitors_pf']]
+
+    L2_combinations = find_combinations(target_L2, L2_values, is_inductor=True)
+    C1_combinations = find_combinations(target_C1, C_values, is_inductor=False)
+    C2_combinations = find_combinations(target_C2, C_values, is_inductor=False)
+
+    configurations = []
+    for L2, L2_type, L2_desc in L2_combinations:
+        for C1, C1_type, C1_desc in C1_combinations:
+            for C2, C2_type, C2_desc in C2_combinations:
+                error, srf_margin = evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_freq)
+                component_count = sum(2 if config_type != 'single' else 1 for config_type in [L2_type, C1_type, C2_type])
+                configurations.append((L2, C1, C2, L2_type, L2_desc, C1_type, C1_desc, C2_type, C2_desc, error, srf_margin, component_count))
+
+    configurations.sort(key=lambda x: (x[9], -x[10], x[11]))  # Sort by error (ascending), SRF margin (descending), and component count (ascending)
+    return configurations[:num_results]
 
 def calculate_auto_q(band_data):
     f_lower = band_data['start'] * 1e6  # Convert to Hz
@@ -319,9 +454,9 @@ def main():
 
         operating_params = generator.calculate_operating_parameters(args.vcc, center_freq, q_factor, topology['R'])
 
-        print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={band_data['q']})")
+        print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={format_number(q_factor)})")
         print(f" Topology = {args.type}")
-
+        print(f" L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
         if args.type == "infinite":
             if topology['L1_status'] == "user-specified":
                 print(f" L1 = {format_inductance_value(topology['L1'])} (user-specified)")
@@ -329,19 +464,29 @@ def main():
                 print(f" L1 ≥ {format_inductance_value(topology['L1'])} (calculated)")
         elif args.type == "finite":
             print(f" L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
-
         print(f" L2 = {format_inductance_value(topology['L2'])}")
         print(f" C1 = {format_capacitance_value(topology['C1'])}")
         print(f" C2 = {format_capacitance_value(topology['C2'])}")
         print(f" R = {format_resistance_value(topology['R'])}")
 
-        print("\nOperating Parameters:")
-        print(f" Peak Vds = {format_voltage_value(operating_params['peak_vds'])}")
-        #print(f" Bandwidth = {format_frequency_value(operating_params['bandwidth'])}")
-        print(f" 2nd Harmonic = {operating_params['second_harmonic']:.2f} dBc")
-        print(f" 3rd Harmonic = {operating_params['third_harmonic']:.2f} dBc")
-        print(f" Drain Efficiency = {operating_params['drain_efficiency']:.2f}%")
-        print(f" Max Drain Current = {format_current_value(operating_params['max_drain_current'])}")
+        best_configs = find_best_configurations(topology['L2'], topology['C1'], topology['C2'], center_freq)
+
+        print("\nTop 3 recommended component configurations:")
+        for i, config in enumerate(best_configs, 1):
+            L2, C1, C2, L2_type, L2_desc, C1_type, C1_desc, C2_type, C2_desc, error, srf_margin, component_count = config
+            print(f"\nConfiguration {i}:")
+            esr_mult = esr_multiplier(L2_type, 2 if L2_type != 'single' else 1)
+            current_mult = current_multiplier(L2_type, 2 if L2_type != 'single' else 1)
+            print(f"L2 = {format_inductance_value(L2)} ({L2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            esr_mult = esr_multiplier(C1_type, 2 if C1_type != 'single' else 1)
+            current_mult = current_multiplier(C1_type, 2 if C1_type != 'single' else 1)
+            print(f"C1 = {format_capacitance_value(C1)} ({C1_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            esr_mult = esr_multiplier(C2_type, 2 if C2_type != 'single' else 1)
+            current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
+            print(f"C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            print(f"Total error: {format_percentage(error)}")
+            print(f"SRF margin: {format_number(srf_margin)}")
+            print(f"Component count: {component_count}")
 
 if __name__ == "__main__":
     main()
