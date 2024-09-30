@@ -459,7 +459,6 @@ def main():
 
         print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={format_number(q_factor)})")
         print(f" Topology = {args.type}")
-        print(f" L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
         if args.type == "infinite":
             if topology['L1_status'] == "user-specified":
                 print(f" L1 = {format_inductance_value(topology['L1'])} (user-specified)")
