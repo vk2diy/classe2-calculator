@@ -521,22 +521,19 @@ def main():
         print("\nTop 3 recommended component configurations:")
         for i, config in enumerate(best_configs, 1):
             L2, C1, C2, L2_type, L2_desc, C1_type, C1_desc, C2_type, C2_desc, error, srf_margin, component_count = config
-            print(f"\nConfiguration {i}:")
             esr_mult = esr_multiplier(L2_type, 2 if L2_type != 'single' else 1)
             current_mult = current_multiplier(L2_type, 2 if L2_type != 'single' else 1)
             srf_ok, srf_status = check_srf_margin(srf_margin)
-            print(f"L2 = {format_inductance_value(L2)} ({L2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
-            esr_mult = esr_multiplier(C1_type, 2 if C1_type != 'single' else 1)
-            current_mult = current_multiplier(C1_type, 2 if C1_type != 'single' else 1)
-            print(f"C1 = {format_capacitance_value(C1)} ({C1_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
-            esr_mult = esr_multiplier(C2_type, 2 if C2_type != 'single' else 1)
-            current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
-            print(f"C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
-            print(f"Total error: {format_percentage(error)}")
-            print(f"Estimated SRF margin: {format_number(srf_margin)} ({srf_status})")
+            print(f"\n  Configuration {i}: ({format_percentage(error)} error, estimated SRF margin {format_number(srf_margin)} ({srf_status}), {component_count} parts)")
             if not srf_ok:
                 print("  (SRF Concern: Consider using a different inductor or parallel combination for L2)")
-            print(f"Component count: {component_count}")
+            print(f"    L2 = {format_inductance_value(L2)} ({L2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            esr_mult = esr_multiplier(C1_type, 2 if C1_type != 'single' else 1)
+            current_mult = current_multiplier(C1_type, 2 if C1_type != 'single' else 1)
+            print(f"    C1 = {format_capacitance_value(C1)} ({C1_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            esr_mult = esr_multiplier(C2_type, 2 if C2_type != 'single' else 1)
+            current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
+            print(f"    C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
 
 if __name__ == "__main__":
     main()
