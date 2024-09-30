@@ -14,6 +14,15 @@ class ClassETopologyGenerator:
     def class_e_topology_generate_inverse(self, power, voltage, center_freq, bandwidth, mosfet_data, q_factor, L1=None):
         omega = 2 * math.pi * center_freq
         L1_min = 0.1 * voltage**2 / (omega * power)
+        if L1 is None:
+            L1 = L1_min
+            L1_status = "calculated"
+        else:
+            L1_status = "user-specified"
+            L1 = parse_inductance(L1)
+            if L1 < L1_min:
+                print(f"Warning: User-specified L1 ({L1:.2e}H) is less than the calculated minimum ({L1_min:.2e}H)")
+
         if L1 < L1_min:
             raise ValueError(f"L1 is too small. Minimum value: {L1_min:.3e} H")
         R = 0.5768 * voltage**2 / power
@@ -25,7 +34,7 @@ class ClassETopologyGenerator:
         duty_cycle = 0.5
         efficiency = 0.9  # Theoretical maximum for Class E
 
-        return { 'L1': L1, 'C1': C1, 'R': R, 'C2': C2, 'L2': L2, 'Q': q_factor, 'duty_cycle': duty_cycle, 'efficiency': efficiency }
+        return { 'L1': L1, 'C1': C1, 'R': R, 'C2': C2, 'L2': L2, 'Q': q_factor, 'duty_cycle': duty_cycle, 'efficiency': efficiency, "L1_status": L1_status, "L1_min": L1_min }
 
     def class_e_topology_generate_infinite(self, output_power_watts, pa_voltage_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
         w0 = 2 * math.pi * center_frequency_hz
@@ -389,6 +398,9 @@ def load_mosfets(filename='mosfets.json'):
     with open(filename, 'r') as f:
         return json.load(f)
 
+# Get the list of available MOSFETs
+AVAILABLE_MOSFETS = list(load_mosfets().keys())
+
 def list_available_mosfets(mosfets):
     print("Available MOSFETs:")
     sorted_mosfets = OrderedDict(sorted(mosfets.items()))
@@ -411,10 +423,10 @@ def create_parser():
     
     parser.add_argument('-p', '--power', type=float, required=True, help='Output power in watts')
     parser.add_argument('-v', '--voltage', type=float, required=True, help='Supply voltage')
-    parser.add_argument('-b', '--bands', nargs='+', choices=AVAILABLE_BANDS, required=True, help='Amateur radio band(s)')
+    parser.add_argument('-b', '--bands', nargs='+', choices=AVAILABLE_BANDS, metavar='BANDLIST', required=True, help='Amateur radio band(s) (eg. 20m 40m)')
     parser.add_argument('-t', '--type', choices=['infinite', 'finite', 'inverse'], default='infinite', help='Topology type selection')
     parser.add_argument('-q', '--q-factor', type=float, help='Q factor (optional)')
-    parser.add_argument('-m', '--mosfet', choices=['IRF510', 'IRF520', 'IRF530', 'IRF540', 'IRF630', 'IRF640', 'IRF730', 'IRF740', 'IRF840', 'IRFZ44N', 'SI2304DDS'], default='IRF510', help='MOSFET selection')
+    parser.add_argument('-m', '--mosfet', choices=AVAILABLE_MOSFETS, metavar='MOSFET', required=True, help='MOSFET')
     parser.add_argument('--list-bands', action='store_true', help='List available bands and exit')
     parser.add_argument('--list-mosfets', action='store_true', help='List available MOSFETs and exit')
     parser.add_argument('--l1', type=str, help='Specify L1 value (e.g., 10uh)')
@@ -497,7 +509,7 @@ def main():
                 print(f" L1 = {format_inductance_value(topology['L1'])} (user-specified)")
             else:
                 print(f" L1 ≥ {format_inductance_value(topology['L1'])} (calculated)")
-        elif args.type == "finite":
+        else:
             print(f" L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
         print(f" L2 = {format_inductance_value(topology['L2'])}")
         print(f" C1 = {format_capacitance_value(topology['C1'])}")
