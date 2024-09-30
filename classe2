@@ -11,6 +11,22 @@ class ClassETopologyGenerator:
     def __init__(self):
         self.pi = math.pi
 
+    def class_e_topology_generate_inverse(self, power, voltage, center_freq, bandwidth, mosfet_data, q_factor, L1=None):
+        omega = 2 * math.pi * center_freq
+        L1_min = 0.1 * voltage**2 / (omega * power)
+        if L1 < L1_min:
+            raise ValueError(f"L1 is too small. Minimum value: {L1_min:.3e} H")
+        R = 0.5768 * voltage**2 / power
+        C2 = 0.1836 / (omega * R)
+        C1 = 1 / (omega**2 * L1) - C2
+        L2 = R / (omega * 1.1525)
+        if q_factor is None:
+            q_factor = math.sqrt(L1 / C1) / R
+        duty_cycle = 0.5
+        efficiency = 0.9  # Theoretical maximum for Class E
+
+        return { 'L1': L1, 'C1': C1, 'R': R, 'C2': C2, 'L2': L2, 'Q': q_factor, 'duty_cycle': duty_cycle, 'efficiency': efficiency }
+
     def class_e_topology_generate_infinite(self, output_power_watts, pa_voltage_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
         w0 = 2 * math.pi * center_frequency_hz
 
@@ -463,10 +479,14 @@ def main():
         else:
             q_factor = args.q_factor
 
+        args.l1 = parse_inductance(args.l1)
+
         if args.type == "infinite":
             topology = generator.class_e_topology_generate_infinite(args.power, args.voltage, center_freq, bandwidth, mosfet_data, q_factor, args.l1)
         elif args.type == "finite":
             topology = generator.class_e_topology_generate_finite(args.power, args.voltage, center_freq, bandwidth, mosfet_data, q_factor, args.l1)
+        elif args.type == "inverse":
+            topology = generator.class_e_topology_generate_inverse(args.power, args.voltage, center_freq, bandwidth, mosfet_data, q_factor, args.l1)
 
         operating_params = generator.calculate_operating_parameters(args.voltage, center_freq, q_factor, topology['R'])
 
