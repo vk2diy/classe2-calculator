@@ -168,6 +168,9 @@ def find_combinations(target, values, max_components=2, tolerance=0.05, is_induc
     combinations.sort(key=lambda x: abs(x[0] - target))
     return combinations[:5]  # Return top 5 combinations
 
+def check_srf_margin(srf_margin):
+    return srf_margin >= 3, "Good" if srf_margin >= 3 else "Concern"
+
 def esr_multiplier(config_type, component_count):
     if config_type == 'single':
         return 1
@@ -477,6 +480,7 @@ def main():
             print(f"\nConfiguration {i}:")
             esr_mult = esr_multiplier(L2_type, 2 if L2_type != 'single' else 1)
             current_mult = current_multiplier(L2_type, 2 if L2_type != 'single' else 1)
+            srf_ok, srf_status = check_srf_margin(srf_margin)
             print(f"L2 = {format_inductance_value(L2)} ({L2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
             esr_mult = esr_multiplier(C1_type, 2 if C1_type != 'single' else 1)
             current_mult = current_multiplier(C1_type, 2 if C1_type != 'single' else 1)
@@ -485,7 +489,9 @@ def main():
             current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
             print(f"C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
             print(f"Total error: {format_percentage(error)}")
-            print(f"SRF margin: {format_number(srf_margin)}")
+            print(f"Estimated SRF margin: {format_number(srf_margin)} ({srf_status})")
+            if not srf_ok:
+                print("  (SRF Concern: Consider using a different inductor or parallel combination for L2)")
             print(f"Component count: {component_count}")
 
 if __name__ == "__main__":
