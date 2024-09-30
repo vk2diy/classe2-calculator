@@ -11,13 +11,13 @@ class ClassETopologyGenerator:
     def __init__(self):
         self.pi = math.pi
 
-    def class_e_topology_generate_infinite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
+    def class_e_topology_generate_infinite(self, output_power_watts, pa_voltage_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
         w0 = 2 * math.pi * center_frequency_hz
 
         Vo = 0  # Assume 0V for MOSFETs
         Coss = mosfet_data['coss_pf'] * 1e-12
 
-        R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
+        R = 0.576801 * ((pa_voltage_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
 
         L1_min = ((math.pi**2 + 4) * R) / w0
 
@@ -26,6 +26,7 @@ class ClassETopologyGenerator:
             L1_status = "calculated"
         else:
             L1_status = "user-specified"
+            L1 = parse_inductance(L1)
             if L1 < L1_min:
                 print(f"Warning: User-specified L1 ({L1:.2e}H) is less than the calculated minimum ({L1_min:.2e}H)")
 
@@ -36,13 +37,13 @@ class ClassETopologyGenerator:
 
         return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R, "L1_status": L1_status, "L1_min": L1_min }
 
-    def class_e_topology_generate_finite(self, output_power_watts, pa_vcc_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
+    def class_e_topology_generate_finite(self, output_power_watts, pa_voltage_volts, center_frequency_hz, bandwidth_hz, mosfet_data, Q, L1=None):
         w0 = 2 * self.pi * center_frequency_hz
 
         Vo = 0  # Assume 0V for MOSFETs
         Coss = mosfet_data['coss_pf'] * 1e-12
 
-        R = 0.576801 * ((pa_vcc_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
+        R = 0.576801 * ((pa_voltage_volts - Vo)**2 / output_power_watts) * (1.0000086 - (0.414396 / Q) - (0.577501 / (Q**2)) + (0.205967 / (Q**3)))
         C1 = (1 / (34.2219 * center_frequency_hz * R)) * (0.99866 + (0.91424 / Q) - (1.03175 / (Q**2))) - Coss
         L2 = (1.15 * R) / w0
         C2 = (1 / (w0 * R)) * (1 / (Q - 0.104823)) * (1.00121 + 1.01468 / (Q - 1.7879))
@@ -58,8 +59,8 @@ class ClassETopologyGenerator:
 
         return { "L1": L1, "L2": L2, "C1": C1, "C2": C2, "R": R, "L1_status": L1_status }
 
-    def calculate_operating_parameters(self, pa_vcc_volts, center_frequency_hz, Q, R):
-        peak_vds = pa_vcc_volts * 3.56 / 0.8
+    def calculate_operating_parameters(self, pa_voltage_volts, center_frequency_hz, Q, R):
+        peak_vds = pa_voltage_volts * 3.56 / 0.8
         bandwidth = center_frequency_hz / Q
         # Estimate harmonics (simplified model)
         # These are rough estimates and may not be accurate for all designs
@@ -69,7 +70,7 @@ class ClassETopologyGenerator:
         # This is a theoretical maximum, actual efficiency will be lower
         drain_efficiency = 100 * (math.pi**2 / 4 + 1) / (math.pi**2 / 2 + 2)  # in percentage
         # Calculate maximum drain current (simplified estimate)
-        max_drain_current = (2 * math.pi * pa_vcc_volts) / (math.pi**2 * R)
+        max_drain_current = (2 * math.pi * pa_voltage_volts) / (math.pi**2 * R)
 
         return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic, "drain_efficiency": drain_efficiency, "max_drain_current": max_drain_current }
 
@@ -240,9 +241,12 @@ def parse_inductance(value):
     except ValueError:
         raise argparse.ArgumentTypeError(f"Invalid inductance value: {value}")
 
-def load_frequency_bands(filename):
+def load_frequency_bands(filename='frequency_bands.json'):
     with open(filename, 'r') as f:
         return json.load(f)
+
+# Get the list of available bands
+AVAILABLE_BANDS = list(load_frequency_bands().keys())
 
 def calculate_center_frequency_and_bandwidth(band_data):
     center_freq = (band_data['start'] + band_data['end']) / 2
@@ -365,8 +369,7 @@ def list_available_bands(frequency_bands):
         end_freq = format_frequency_value(band_data['end'] * 1e6)
         print(f"{band_id}:{start_freq}-{end_freq}")
 
-
-def load_mosfets(filename):
+def load_mosfets(filename='mosfets.json'):
     with open(filename, 'r') as f:
         return json.load(f)
 
@@ -387,27 +390,37 @@ def list_available_mosfets(mosfets):
         ]
         print(":".join(mosfet_info))
 
-def main():
-    parser = argparse.ArgumentParser(description="Class E Topology Generator")
+def create_parser():
+    parser = argparse.ArgumentParser(description='Class-E RF Power Amplifier Calculator')
+    
+    parser.add_argument('-p', '--power', type=float, required=True, help='Output power in watts')
+    parser.add_argument('-v', '--voltage', type=float, required=True, help='Supply voltage')
+    parser.add_argument('-b', '--bands', nargs='+', choices=AVAILABLE_BANDS, required=True, help='Amateur radio band(s)')
+    parser.add_argument('-t', '--type', choices=['infinite', 'finite', 'inverse'], default='infinite', help='Topology type selection')
+    parser.add_argument('-q', '--q-factor', type=float, help='Q factor (optional)')
+    parser.add_argument('-m', '--mosfet', choices=['IRF510', 'IRF520', 'IRF530', 'IRF540', 'IRF630', 'IRF640', 'IRF730', 'IRF740', 'IRF840', 'IRFZ44N', 'SI2304DDS'], default='IRF510', help='MOSFET selection')
+    parser.add_argument('--list-bands', action='store_true', help='List available bands and exit')
+    parser.add_argument('--list-mosfets', action='store_true', help='List available MOSFETs and exit')
+    parser.add_argument('--l1', type=str, help='Specify L1 value (e.g., 10uh)')
+    parser.add_argument('--c1', type=str, help='Specify C1 value (e.g., 100pf)')
+    parser.add_argument('--c2', type=str, help='Specify C2 value (e.g., 50pf)')
+    parser.add_argument('--l2', type=str, help='Specify L2 value (e.g., 5uh)')
+    parser.add_argument('--r', type=float, help='Specify load resistance (ohms)')
+    parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
+    parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
+    
+    return parser
 
-    # Create a mutually exclusive group for listing options and main operation
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--list-bands", action="store_true", help="List available frequency bands")
-    group.add_argument("--list-mosfets", action="store_true", help="List available MOSFETs")
-    group.add_argument("-t", "--type", choices=["infinite", "finite"], help="Topology type")
-
-    # Add other arguments
-    parser.add_argument("-p", "--power", type=float, help="Power desired for output (watts)")
-    parser.add_argument("-v", "--vcc", type=float, help="PA supply voltage (volts)")
-    parser.add_argument("-b", "--bands", type=str, help="Comma-separated list of band IDs")
-    parser.add_argument("-m", "--mosfet", type=str, help="MOSFET model")
-    parser.add_argument("-q", "--q-factor", type=float, help="Q factor (optional, auto-calculated if not provided)")
-    parser.add_argument("-l1", "--l1-value", type=parse_inductance, help="L1 value (e.g., 10uH, 33nH, 22.15uH)")
-
+def parse_arguments():
+    parser = create_parser()
     args = parser.parse_args()
+    return args
 
-    frequency_bands = load_frequency_bands('frequency_bands.json')
-    mosfets = load_mosfets('mosfets.json')
+def main():
+    args = parse_arguments()
+
+    frequency_bands = load_frequency_bands()
+    mosfets = load_mosfets()
 
     if args.list_bands:
         list_available_bands(frequency_bands)
@@ -417,8 +430,8 @@ def main():
         return
 
     # Check for required arguments for main operation
-    if not all([args.power, args.vcc, args.bands, args.mosfet]):
-        parser.error("The following arguments are required: -p/--power, -v/--vcc, -b/--bands, -m/--mosfet")
+    if not all([args.power, args.voltage, args.bands, args.mosfet]):
+        parser.error("The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
 
     if args.mosfet not in mosfets:
         print(f"Error: MOSFET '{args.mosfet}' not found in mosfets.json")
@@ -429,11 +442,11 @@ def main():
 
     print("\nInput parameters:")
     print(f" Output Power = {format_power_value(args.power)}")
-    print(f" Supply Voltage = {format_voltage_value(args.vcc)}")
+    print(f" Supply Voltage = {format_voltage_value(args.voltage)}")
     print(f" MOSFET = {mosfet_info}")
     print(f" Q Factor = {args.q_factor}")
 
-    band_ids = args.bands.split(',')
+    band_ids = args.bands #.split(',')
 
     generator = ClassETopologyGenerator()
 
@@ -451,11 +464,11 @@ def main():
             q_factor = args.q_factor
 
         if args.type == "infinite":
-            topology = generator.class_e_topology_generate_infinite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, q_factor, args.l1_value)
+            topology = generator.class_e_topology_generate_infinite(args.power, args.voltage, center_freq, bandwidth, mosfet_data, q_factor, args.l1)
         elif args.type == "finite":
-            topology = generator.class_e_topology_generate_finite(args.power, args.vcc, center_freq, bandwidth, mosfet_data, q_factor, args.l1_value)
+            topology = generator.class_e_topology_generate_finite(args.power, args.voltage, center_freq, bandwidth, mosfet_data, q_factor, args.l1)
 
-        operating_params = generator.calculate_operating_parameters(args.vcc, center_freq, q_factor, topology['R'])
+        operating_params = generator.calculate_operating_parameters(args.voltage, center_freq, q_factor, topology['R'])
 
         print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={format_number(q_factor)})")
         print(f" Topology = {args.type}")
