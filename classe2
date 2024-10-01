@@ -493,6 +493,66 @@ def t_network(f, Z_out):
     L2_match = (Q * Z_out) / (2 * math.pi * f)
     return L1_match, C_match, L2_match
 
+def l_network_diagram():
+    return """
+L Matching Network:
+IN--[L_match]--+--OUT
+               |
+           [C_match]
+               |
+              GND
+"""
+
+def pi_network_diagram():
+    return """
+Pi Matching Network:
+IN--[C1_match]--[L_match]--[C2_match]--OUT
+    |                      |
+   GND                    GND
+"""
+
+def t_network_diagram():
+    return """
+T Matching Network:
+IN--[L1_match]--+--[L2_match]--OUT
+                |
+            [C_match]
+                |
+               GND
+"""
+
+def lpf_diagram():
+    return """
+Low Pass Filter:
+IN--[C1]--[L2]--[C3]--[L4]--[C5]--OUT
+    |           |           |
+   GND         GND         GND
+"""
+
+def generate_topology_diagram(matching_network_type, lpf_order=5):
+    diagram = "Circuit Topology:\n\n"
+    diagram += "Class E Power Amplifier:\n"
+    diagram += """
+    +--[L1]--+
+    |        |
+[VCC]     [C1]  [MOSFET]--[L2]--[C2]--+
+    |        |                        |
+   GND      GND                      OUT
+"""
+    
+    diagram += "\nMatching Network:\n"
+    if matching_network_type == 'l':
+        diagram += l_network_diagram()
+    elif matching_network_type == 'pi':
+        diagram += pi_network_diagram()
+    elif matching_network_type == 't':
+        diagram += t_network_diagram()
+    
+    diagram += "\nLow Pass Filter:\n"
+    diagram += lpf_diagram()
+    
+    return diagram
+
 def calculate_matching_network(f, C1, network_type):
     Z_out = calculate_output_impedance(f, C1)
     if network_type == 'l':
@@ -671,6 +731,10 @@ def main():
                 name = f" {component_type}{j+1}_lpf"
                 print(f"  {name}: {format_configuration(config[j], component_type)}")
             print()
+
+        # Generate and print the topology diagram
+        topology_diagram = generate_topology_diagram(matching_network_type)
+        print(topology_diagram)
 
 if __name__ == "__main__":
     main()
