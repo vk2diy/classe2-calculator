@@ -474,8 +474,8 @@ def calculate_lpf(f_cutoff, order=5):
     return components
 
 def l_network(f, Z_out):
-    L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * pi * f)
-    C_match = 1 / (2 * pi * f * math.sqrt(Z_out * (50 - Z_out)))
+    L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * math.pi * f)
+    C_match = 1 / (2 * math.pi * f * math.sqrt(Z_out * (50 - Z_out)))
     return L_match, C_match
 
 def pi_network(f, Z_out):
@@ -495,13 +495,13 @@ def t_network(f, Z_out):
 
 def calculate_matching_network(f, C1, network_type):
     Z_out = calculate_output_impedance(f, C1)
-    if network_type == 'L':
+    if network_type == 'l':
         L_match, C_match = l_network(f, Z_out)
         return [('L_match', L_match), ('C_match', C_match)]
-    elif network_type == 'Pi':
+    elif network_type == 'pi':
         C1_match, L_match, C2_match = pi_network(f, Z_out)
         return [('C1_match', C1_match), ('L_match', L_match), ('C2_match', C2_match)]
-    elif network_type == 'T':
+    elif network_type == 't':
         L1_match, C_match, L2_match = t_network(f, Z_out)
         return [('L1_match', L1_match), ('C_match', C_match), ('L2_match', L2_match)]
     else:
@@ -537,7 +537,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    matching_network_type = args.matching.capitalize()
+    matching_network_type = args.matching.lower() if args.matching else 'pi'
 
     frequency_bands = load_frequency_bands()
     mosfets = load_mosfets()
@@ -635,26 +635,26 @@ def main():
             current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
             print(f"     C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
 
-
-
-        # Matching Network Configurations
+        # Matching networks
         print("\n Matching Network Configurations:")
-        matching_targets = {
-            'C1_match': matching_components[0][1] * 1e12,
-            'L_match': matching_components[1][1] * 1e6,
-            'C2_match': matching_components[2][1] * 1e12
-        }
+        matching_targets = {}
+        for name, value in matching_components:
+            if name.startswith('L'):
+                matching_targets[name] = value * 1e6
+            else:  # Capacitor
+                matching_targets[name] = value * 1e12
+
         matching_configs = generate_combinations(matching_targets, {
-            'C1_match': COMPONENTS['capacitors_pf'],
-            'L_match': COMPONENTS['inductors_uh'],
-            'C2_match': COMPONENTS['capacitors_pf']
+            name: COMPONENTS['inductors_uh' if name.startswith('L') else 'capacitors_pf']
+            for name, _ in matching_components
         })
 
         for i, config in enumerate(matching_configs[:3], 1):
             print(f"  Configuration {i}:")
-            for j, (name, value) in enumerate(matching_components):
-                print(f"   {name}: {format_configuration(config[j], name[0])}")
+            for j, (name, _) in enumerate(matching_components):
+                print(f"  {name}: {format_configuration(config[j], name[0])}")
             print()
+
 
         # Low Pass Filter Configurations
         print("\n Low Pass Filter Configurations:")
