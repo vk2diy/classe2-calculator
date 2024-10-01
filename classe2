@@ -142,7 +142,26 @@ def format_configuration(config, component_type):
     else:  # component_type == 'C'
         formatted_value = format_capacitance_value(sum(parts) * 1e-12)
         parts_str = ' + '.join(format_capacitance_value(p * 1e-12) for p in parts)
-    return f"({error:.2f}% error) {formatted_value} ({parts_str}) [ESR={esr_factor:.2f}x] [I={current_factor:.2f}x]"
+
+    # Determine ESR description
+    if esr_factor == 1:
+        esr_desc = "ESR=standard"
+    elif esr_factor < 1:
+        esr_desc = "ESR=reduced"
+    else:
+        esr_desc = f"ESR=sum"
+
+    # Determine current handling description
+    if current_factor == 1:
+        current_desc = "I=normal"
+    elif current_factor == 0.5:
+        current_desc = "I=half"
+    elif current_factor < 1:
+        current_desc = f"I=smallest"
+    else:
+        current_desc = f"I={current_factor:.2f}x(?)"
+
+    return f"({error:.2f}% error) {formatted_value} ({parts_str}) [{esr_desc}] [{current_desc}]"
 
 def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_freq):
     L2_error = abs(L2 - target_L2) / target_L2
