@@ -117,23 +117,17 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_combinations(target_values, components, max_parts=3, tolerance=0.1):
-    def generate_for_single(target, components):
-        configurations = []
-        for i in range(1, max_parts + 1):
-            for combo in itertools.combinations_with_replacement(components, i):
-                value = sum(combo)
-                error = abs(value - target) / target
-                if error <= tolerance:
-                    esr_factor = i
-                    current_factor = 1 / i
-                    configurations.append((error, combo, esr_factor, current_factor))
-        return sorted(configurations, key=lambda x: x[0])[:3]
+def generate_combinations(target_values, tolerance=0.1):
+    def generate_for_single(target, component_type):
+        std_value = get_standard_value(target, component_type)
+        error = abs(std_value - target) / target
+        return (error, (std_value,), 1, 1)
 
-    all_configs = [generate_for_single(target, components[component_type])
+    all_configs = [generate_for_single(target, component_type)
                    for component_type, target in target_values.items()]
 
-    return list(itertools.product(*all_configs))
+    print(f"generate_combinations() returning {all_configs}")
+    return [all_configs]  # Return a list containing a single configuration
 
 def format_configuration(config, component_type):
     error, parts, esr_factor, current_factor = config
@@ -452,26 +446,70 @@ def list_available_mosfets(mosfets):
         ]
         print(":".join(mosfet_info))
 
+def get_standard_value(value, component_type):
+    if component_type.startswith('L'):
+        standard_values = COMPONENTS['inductors_uh']
+        value_uh = value * 1e6  # Convert to µH
+    else:  # Capacitor
+        standard_values = COMPONENTS['capacitors_pf']
+        value_pf = value * 1e12  # Convert to pF
+
+    closest = min(standard_values, key=lambda x: abs(x - (value_uh if component_type.startswith('L') else value_pf)))
+
+    # Ensure we don't return 0 values
+    if closest == 0:
+        closest = min(filter(lambda x: x > 0, standard_values))
+
+    return closest * 1e-6 if component_type.startswith('L') else closest * 1e-12  # Convert back to H or F
+
 def calculate_output_impedance(f, C1):
     return 0.28 / (2 * math.pi * f * C1)
 
-def calculate_lpf(f_cutoff, order=5):
-    # Normalized Butterworth coefficients for 5th order filter
+def calculate_lpf(f_cutoff, order=5, tolerance=0.1):
     g_values = [1.0, 1.5963, 2.0967, 1.5963, 1.0]
-
-    Z0 = 50  # Characteristic impedance in ohms
+    Z0 = 50
     omega_c = 2 * math.pi * f_cutoff
 
     components = []
     for i, g in enumerate(g_values):
         if i % 2 == 0:  # Shunt capacitors
             C = g / (Z0 * omega_c)
-            components.append(('C', C))
+            C_std = get_standard_value(C, 'C')
+            components.append(('C', C_std))
         else:  # Series inductors
             L = (Z0 * g) / omega_c
-            components.append(('L', L))
+            L_std = get_standard_value(L, 'L')
+            components.append(('L', L_std))
 
-    return components
+    return components  # Remove rebalancing for now
+
+def rebalance_lpf(components, f_cutoff, Z0, tolerance):
+    omega_c = 2 * math.pi * f_cutoff
+    rebalanced = []
+    for i, (component_type, value) in enumerate(components):
+        if i == 0:  # First component, can't rebalance previous
+            rebalanced.append((component_type, value))
+            continue
+
+        prev_type, prev_value = rebalanced[-1]
+        if component_type == 'C':
+            ideal_C = 1 / (omega_c * Z0 * prev_value)
+            error = abs(value - ideal_C) / ideal_C
+            if error > tolerance:
+                new_C = get_standard_value(ideal_C * 1e12, 'C') * 1e-12
+                rebalanced.append(('C', new_C))
+            else:
+                rebalanced.append((component_type, value))
+        else:  # 'L'
+            ideal_L = Z0 / (omega_c * prev_value)
+            error = abs(value - ideal_L) / ideal_L
+            if error > tolerance:
+                new_L = get_standard_value(ideal_L * 1e6, 'L') * 1e-6
+                rebalanced.append(('L', new_L))
+            else:
+                rebalanced.append((component_type, value))
+
+    return rebalanced
 
 def l_network(f, Z_out):
     L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * math.pi * f)
@@ -689,12 +727,11 @@ def main():
 
         best_configs = find_best_configurations(topology['L2'], topology['C1'], topology['C2'], center_freq)
 
+
+
+
         # determine matching network
         matching_components = calculate_matching_network(center_freq, topology['C1'], matching_network_type)
-
-        # determine lpf
-        f_cutoff = 1.3 * center_freq # Set cutoff frequency 30% above operating frequency
-        lpf_components = calculate_lpf(f_cutoff)
 
         print("\n  Top 3 recommended Power Amplifier component configurations:")
         for i, config in enumerate(best_configs, 1):
@@ -713,42 +750,42 @@ def main():
             current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
             print(f"     C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
 
-        # Matching networks
-        print("\n Matching Network Configurations:")
+        # ----------------------------------------------------
+
         matching_targets = {}
         for name, value in matching_components:
             if name.startswith('L'):
-                matching_targets[name] = value * 1e6
+                matching_targets[name] = value
             else:  # Capacitor
-                matching_targets[name] = value * 1e12
+                matching_targets[name] = value
 
-        matching_configs = generate_combinations(matching_targets, {
-            name: COMPONENTS['inductors_uh' if name.startswith('L') else 'capacitors_pf']
-            for name, _ in matching_components
-        })
+        tolerance=0.1 # 10%
+        matching_configs = generate_combinations(matching_targets, tolerance)
 
-        for i, config in enumerate(matching_configs[:3], 1):
-            print(f"  Configuration {i}:")
+        print("\nMatching Network Configurations:")
+        for i, config in enumerate(matching_configs, 1):
+            print(f"Configuration {i}:")
             for j, (name, _) in enumerate(matching_components):
-                print(f"  {name}: {format_configuration(config[j], name[0])}")
+                error, (value,), esr_factor, current_factor = config[j]
+                if name.startswith('L'):
+                    formatted_value = format_inductance_value(value)
+                else:  # Capacitor
+                    formatted_value = format_capacitance_value(value)
+                print(f"  {name}: ({error:.2%} error) {formatted_value} ({formatted_value}) [ESR={'standard' if esr_factor == 1 else f'{esr_factor:.2f}x'}] [I={'normal' if current_factor == 1 else f'{current_factor:.2f}x'}]")
             print()
 
+        # ----------------------------------------------------
 
-        # Low Pass Filter Configurations
-        print("\n Low Pass Filter Configurations:")
-        lpf_targets = {f" {component_type}{i+1}_lpf": value * (1e12 if component_type == 'C' else 1e6)
-                   for i, (component_type, value) in enumerate(lpf_components)}
-        lpf_configs = generate_combinations(lpf_targets, {
-            f" {component_type}{i+1}_lpf": COMPONENTS['capacitors_pf' if component_type == 'C' else 'inductors_uh']
-            for i, (component_type, _) in enumerate(lpf_components)
-        })
+        print("\nLow Pass Filter Configurations:")
+        f_cutoff=center_freq*1.5
+        lpf_components = calculate_lpf(f_cutoff, tolerance=tolerance)
 
-        for i, config in enumerate(lpf_configs[:3], 1):
-            print(f"  Configuration {i}:")
-            for j, (component_type, _) in enumerate(lpf_components):
-                name = f" {component_type}{j+1}_lpf"
-                print(f"  {name}: {format_configuration(config[j], component_type)}")
-            print()
+        print("LPF Components:")
+        for i, (component_type, value) in enumerate(lpf_components):
+            if component_type == 'L':
+                print(f"  L{i//2+1}: {format_inductance_value(value)}")
+            else:
+                print(f"  C{i//2+1}: {format_capacitance_value(value)}")
 
         # Generate and print the topology diagram
         topology_diagram = generate_topology_diagram(matching_network_type)
