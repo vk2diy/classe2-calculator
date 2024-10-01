@@ -5,6 +5,7 @@ import json
 import re
 from bisect import bisect_left
 from collections import OrderedDict
+import itertools
 
 class ClassETopologyGenerator:
 
@@ -116,19 +117,32 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_combinations(target_value, standard_values, max_components=3):
-    combinations = []
-    for i in range(1, max_components + 1):
-        for combo in combinations_with_replacement(standard_values, i):
+def generate_combinations(target, components, max_parts=3, tolerance=0.1):
+    configurations = []
+    for i in range(1, max_parts + 1):
+        for combo in itertools.combinations_with_replacement(components, i):
             if i == 1:
-                combinations.append((combo[0], 'single'))
-            elif len(set(combo)) == 1:
-                combinations.append((series_combination(*combo), f'{i} in series'))
-                combinations.append((parallel_combination(*combo), f'{i} in parallel'))
+                value = combo[0]
+            elif i == 2:
+                value = parallel_combination(*combo)
             else:
-                combinations.append((series_combination(*combo), f'{i} mixed series'))
-                combinations.append((parallel_combination(*combo), f'{i} mixed parallel'))
-    return combinations
+                value = 1 / sum(1/c for c in combo)
+            error = abs(value - target) / target
+            if error <= tolerance and 0.5 * target <= value <= 2 * target:  # Ensure value is within reasonable range
+                esr_factor = i
+                current_factor = 1 / i
+                configurations.append((error, combo, esr_factor, current_factor))
+    return sorted(configurations, key=lambda x: x[0])[:3]
+
+def format_configuration(config, component_type):
+    error, parts, esr_factor, current_factor = config
+    if component_type == 'L':
+        formatted_value = format_inductance_value(sum(parts) * 1e-6)
+        parts_str = ' + '.join(format_inductance_value(p * 1e-6) for p in parts)
+    else:  # component_type == 'C'
+        formatted_value = format_capacitance_value(sum(parts) * 1e-12)
+        parts_str = ' + '.join(format_capacitance_value(p * 1e-12) for p in parts)
+    return f"({error:.2f}% error) {formatted_value} ({parts_str}) [ESR={esr_factor:.2f}x] [I={current_factor:.2f}x]"
 
 def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_freq):
     L2_error = abs(L2 - target_L2) / target_L2
@@ -449,6 +463,7 @@ def pi_network(f, Z_out):
     C1_match = (Q / (2 * math.pi * f * 50)) * (1 + math.sqrt(1 + (50 / Z_out)))
     L_match = (Q * 50) / (2 * math.pi * f)
     C2_match = (Q / (2 * math.pi * f * Z_out)) * (1 + math.sqrt(1 + (Z_out / 50)))
+    print(f"\nReturning pi_network(C1_match={C1_match},L_match={L_match},C2_match={C2_match}")
     return C1_match, L_match, C2_match
 
 def t_network(f, Z_out):
@@ -560,18 +575,19 @@ def main():
         operating_params = generator.calculate_operating_parameters(args.voltage, center_freq, q_factor, topology['R'])
 
         print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={format_number(q_factor)})")
-        print(f" Topology = {args.type}")
+        print(f" Power Amplifier components:")
+        print(f"  Topology = {args.type}")
         if args.type == "infinite":
             if topology['L1_status'] == "user-specified":
-                print(f" L1 = {format_inductance_value(topology['L1'])} (user-specified)")
+                print(f"  L1 = {format_inductance_value(topology['L1'])} (user-specified)")
             else:
-                print(f" L1 ≥ {format_inductance_value(topology['L1'])} (calculated)")
+                print(f"  L1 ≥ {format_inductance_value(topology['L1'])} (calculated)")
         else:
-            print(f" L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
-        print(f" L2 = {format_inductance_value(topology['L2'])}")
-        print(f" C1 = {format_capacitance_value(topology['C1'])}")
-        print(f" C2 = {format_capacitance_value(topology['C2'])}")
-        print(f" R = {format_resistance_value(topology['R'])}")
+            print(f"  L1 = {format_inductance_value(topology['L1'])} ({topology['L1_status']})")
+        print(f"  L2 = {format_inductance_value(topology['L2'])}")
+        print(f"  C1 = {format_capacitance_value(topology['C1'])}")
+        print(f"  C2 = {format_capacitance_value(topology['C2'])}")
+        print(f"  R = {format_resistance_value(topology['R'])} (before matching)")
 
         best_configs = find_best_configurations(topology['L2'], topology['C1'], topology['C2'], center_freq)
 
@@ -582,41 +598,51 @@ def main():
         f_cutoff = 1.3 * center_freq # Set cutoff frequency 30% above operating frequency
         lpf_components = calculate_lpf(f_cutoff)
 
-        print("\nTop 3 recommended component configurations:")
+        print("\n  Top 3 recommended Power Amplifier component configurations:")
         for i, config in enumerate(best_configs, 1):
             L2, C1, C2, L2_type, L2_desc, C1_type, C1_desc, C2_type, C2_desc, error, srf_margin, component_count = config
             esr_mult = esr_multiplier(L2_type, 2 if L2_type != 'single' else 1)
             current_mult = current_multiplier(L2_type, 2 if L2_type != 'single' else 1)
             srf_ok, srf_status = check_srf_margin(srf_margin)
-            print(f"\n  Configuration {i}: ({format_percentage(error)} error, estimated SRF margin {format_number(srf_margin)} ({srf_status}), {component_count} parts)")
+            print(f"\n   Configuration {i}: ({format_percentage(error)} error, estimated SRF margin {format_number(srf_margin)} ({srf_status}), {component_count} parts)")
             if not srf_ok:
-                print("  (SRF Concern: Consider using a different inductor or parallel combination for L2)")
-            print(f"    L2 = {format_inductance_value(L2)} ({L2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+                print("   (SRF Concern: Consider using a different inductor or parallel combination for L2)")
+            print(f"     L2 = {format_inductance_value(L2)} ({L2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
             esr_mult = esr_multiplier(C1_type, 2 if C1_type != 'single' else 1)
             current_mult = current_multiplier(C1_type, 2 if C1_type != 'single' else 1)
-            print(f"    C1 = {format_capacitance_value(C1)} ({C1_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            print(f"     C1 = {format_capacitance_value(C1)} ({C1_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
             esr_mult = esr_multiplier(C2_type, 2 if C2_type != 'single' else 1)
             current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
-            print(f"    C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+            print(f"     C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
 
-        print(f"\n Matching Network:")
-        print(f"  Topology: {matching_network_type}")
+
+        print("\n Matching Network Configurations:")
         for name, value in matching_components:
             if name.startswith('L'):
-                formatted_value = format_inductance_value(value)
-            elif name.startswith('C'):
-                formatted_value = format_capacitance_value(value)
+                configs = generate_combinations(value * 1e6, COMPONENTS['inductors_uh'])
+            else:  # Capacitor
+                configs = generate_combinations(value * 1e12, COMPONENTS['capacitors_pf'])
+            print(f"  {name}:")
+            #print(f"   (raw={value})")
+            if configs:
+                for i, config in enumerate(configs, 1):
+                    print(f"    Configuration {i}: {format_configuration(config, name[0])}")
             else:
-                formatted_value = format_number_for_clarity(str(value))
-            print(f"  {name} = {formatted_value}")
+                print("    No suitable configurations found")
 
-        print("\n Low Pass Filter (50Ω input/output):")
+        print("\n Low Pass Filter Configurations:")
         for i, (component_type, value) in enumerate(lpf_components, 1):
             if component_type == 'L':
-                formatted_value = format_inductance_value(value)
+                configs = generate_combinations(value * 1e6, COMPONENTS['inductors_uh'])
             else:  # component_type == 'C'
-                formatted_value = format_capacitance_value(value)
-            print(f"  {component_type}{i} = {formatted_value}")
+                configs = generate_combinations(value * 1e12, COMPONENTS['capacitors_pf'])
+            print(f"  {component_type}{i}_lpf:")
+            print(f"   (raw={value})")
+            if configs:
+                for j, config in enumerate(configs, 1):
+                    print(f"    Configuration {j}: {format_configuration(config, component_type)}")
+            else:
+                print("    No suitable configurations found")
 
 if __name__ == "__main__":
     main()
