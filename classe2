@@ -418,6 +418,60 @@ def list_available_mosfets(mosfets):
         ]
         print(":".join(mosfet_info))
 
+def calculate_output_impedance(f, C1):
+    return 0.28 / (2 * math.pi * f * C1)
+
+def calculate_lpf(f_cutoff, order=5):
+    # Normalized Butterworth coefficients for 5th order filter
+    g_values = [1.0, 1.5963, 2.0967, 1.5963, 1.0]
+
+    Z0 = 50  # Characteristic impedance in ohms
+    omega_c = 2 * math.pi * f_cutoff
+
+    components = []
+    for i, g in enumerate(g_values):
+        if i % 2 == 0:  # Shunt capacitors
+            C = g / (Z0 * omega_c)
+            components.append(('C', C))
+        else:  # Series inductors
+            L = (Z0 * g) / omega_c
+            components.append(('L', L))
+
+    return components
+
+def l_network(f, Z_out):
+    L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * pi * f)
+    C_match = 1 / (2 * pi * f * math.sqrt(Z_out * (50 - Z_out)))
+    return L_match, C_match
+
+def pi_network(f, Z_out):
+    Q = 1.5  # Quality factor, can be adjusted
+    C1_match = (Q / (2 * math.pi * f * 50)) * (1 + math.sqrt(1 + (50 / Z_out)))
+    L_match = (Q * 50) / (2 * math.pi * f)
+    C2_match = (Q / (2 * math.pi * f * Z_out)) * (1 + math.sqrt(1 + (Z_out / 50)))
+    return C1_match, L_match, C2_match
+
+def t_network(f, Z_out):
+    Q = 1.5  # Quality factor, can be adjusted
+    L1_match = (Q * 50) / (2 * math.pi * f)
+    C_match = Q / (2 * math.pi * f * math.sqrt(50 * Z_out))
+    L2_match = (Q * Z_out) / (2 * math.pi * f)
+    return L1_match, C_match, L2_match
+
+def calculate_matching_network(f, C1, network_type):
+    Z_out = calculate_output_impedance(f, C1)
+    if network_type == 'L':
+        L_match, C_match = l_network(f, Z_out)
+        return [('L_match', L_match), ('C_match', C_match)]
+    elif network_type == 'Pi':
+        C1_match, L_match, C2_match = pi_network(f, Z_out)
+        return [('C1_match', C1_match), ('L_match', L_match), ('C2_match', C2_match)]
+    elif network_type == 'T':
+        L1_match, C_match, L2_match = t_network(f, Z_out)
+        return [('L1_match', L1_match), ('C_match', C_match), ('L2_match', L2_match)]
+    else:
+        raise ValueError("Invalid network type. Choose 'L', 'Pi', or 'T'.")
+
 def create_parser():
     parser = argparse.ArgumentParser(description='Class-E RF Power Amplifier Calculator')
     
@@ -427,6 +481,7 @@ def create_parser():
     parser.add_argument('-t', '--type', choices=['infinite', 'finite', 'inverse'], default='infinite', help='Topology type selection')
     parser.add_argument('-q', '--q-factor', type=float, help='Q factor (optional)')
     parser.add_argument('-m', '--mosfet', choices=AVAILABLE_MOSFETS, metavar='MOSFET', required=True, help='MOSFET')
+    parser.add_argument('-M', '--matching', choices=['l', 'pi', 't'], default='pi', help='Matching network type')
     parser.add_argument('--list-bands', action='store_true', help='List available bands and exit')
     parser.add_argument('--list-mosfets', action='store_true', help='List available MOSFETs and exit')
     parser.add_argument('--l1', type=str, help='Specify L1 value (e.g., 10uh)')
@@ -446,6 +501,8 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
+
+    matching_network_type = args.matching.capitalize()
 
     frequency_bands = load_frequency_bands()
     mosfets = load_mosfets()
@@ -518,6 +575,13 @@ def main():
 
         best_configs = find_best_configurations(topology['L2'], topology['C1'], topology['C2'], center_freq)
 
+        # determine matching network
+        matching_components = calculate_matching_network(center_freq, topology['C1'], matching_network_type)
+
+        # determine lpf
+        f_cutoff = 1.3 * center_freq # Set cutoff frequency 30% above operating frequency
+        lpf_components = calculate_lpf(f_cutoff)
+
         print("\nTop 3 recommended component configurations:")
         for i, config in enumerate(best_configs, 1):
             L2, C1, C2, L2_type, L2_desc, C1_type, C1_desc, C2_type, C2_desc, error, srf_margin, component_count = config
@@ -534,6 +598,25 @@ def main():
             esr_mult = esr_multiplier(C2_type, 2 if C2_type != 'single' else 1)
             current_mult = current_multiplier(C2_type, 2 if C2_type != 'single' else 1)
             print(f"    C2 = {format_capacitance_value(C2)} ({C2_desc}) [ESR={esr_mult:.2f}x] [I={current_mult:.2f}x]")
+
+        print(f"\n Matching Network:")
+        print(f"  Topology: {matching_network_type}")
+        for name, value in matching_components:
+            if name.startswith('L'):
+                formatted_value = format_inductance_value(value)
+            elif name.startswith('C'):
+                formatted_value = format_capacitance_value(value)
+            else:
+                formatted_value = format_number_for_clarity(str(value))
+            print(f"  {name} = {formatted_value}")
+
+        print("\n Low Pass Filter (50Ω input/output):")
+        for i, (component_type, value) in enumerate(lpf_components, 1):
+            if component_type == 'L':
+                formatted_value = format_inductance_value(value)
+            else:  # component_type == 'C'
+                formatted_value = format_capacitance_value(value)
+            print(f"  {component_type}{i} = {formatted_value}")
 
 if __name__ == "__main__":
     main()
