@@ -495,52 +495,69 @@ def t_network(f, Z_out):
 
 def l_network_diagram():
     return """
-L Matching Network:
-IN--[L_match]--+--OUT
-               |
-           [C_match]
-               |
-              GND
-"""
+ | Z<50Ω                                              |
+=|===== L Matching Network ===========================|=======
+ |                                                    |
+ `--[L_match]--+------.                               |
+               |      |                               |
+           [C_match]  |                               |
+               |      |                               |
+              GND     |                               |
+                      |                               |
+ .--------------------'                               |
+ | Z=50Ω                                              |"""
 
 def pi_network_diagram():
     return """
-Pi Matching Network:
-IN--[C1_match]--[L_match]--[C2_match]--OUT
-    |                      |
-   GND                    GND
-"""
+ | Z<50Ω                                              |
+=|===== Pi Matching Network ==========================|=======
+ |                                                    |
+ `--[C1_match]--[L_match]--[C2_match]--.              |
+       |                      |        |              |
+      GND                    GND       |              |
+                                       |              |
+ .-------------------------------------'              |
+ | Z=50Ω                                              |"""
 
 def t_network_diagram():
     return """
-T Matching Network:
-IN--[L1_match]--+--[L2_match]--OUT
-                |
-            [C_match]
-                |
-               GND
-"""
+ | Z<50Ω                                              |
+=|===== T Matching Network ===========================|=======
+ |                                                    |
+ `--[L1_match]--+--[L2_match]--.                      |
+                |              |                      |
+            [C_match]          |                      |
+                |              |                      |
+               GND             |                      |
+                               |                      |
+ .-----------------------------'                      |
+ | Z=50Ω                                              |"""
 
 def lpf_diagram():
     return """
-Low Pass Filter:
-IN--[C1]--[L2]--[C3]--[L4]--[C5]--OUT
-    |           |           |
-   GND         GND         GND
+=|===== Low Pass Filter ==============================|=======
+ |                                                    |
+ `--[C1_lpf]--[L2_lpf]--[C3_lpf]--[L4_lpf]--[C5_lpf]--'
+       |                   |                   |      
+      GND                 GND                 GND     
+
+==============================================================
 """
 
 def generate_topology_diagram(matching_network_type, lpf_order=5):
-    diagram = "Circuit Topology:\n\n"
-    diagram += "Class E Power Amplifier:\n"
-    diagram += """
-    +--[L1]--+
-    |        |
-[VCC]     [C1]  [MOSFET]--[L2]--[C2]--+
-    |        |                        |
-   GND      GND                      OUT
-"""
+    diagram = """
+                                                   ANTENNA
+                                                   SYSTEM
+                                                   |  |
+======= Class E Power Amplifier ===================|==|=======
+   VCC--[L1]--[C1]--[L2]--[C2]--.                  |  |
+               |                |       DRV--[MOSFET] |
+              GND               |               |     |
+                                |              GND    |
+                                |                     |
+ .------------------------------'                     |"""
     
-    diagram += "\nMatching Network:\n"
+    #diagram += "\nMatching Network:\n"
     if matching_network_type == 'l':
         diagram += l_network_diagram()
     elif matching_network_type == 'pi':
@@ -548,7 +565,7 @@ def generate_topology_diagram(matching_network_type, lpf_order=5):
     elif matching_network_type == 't':
         diagram += t_network_diagram()
     
-    diagram += "\nLow Pass Filter:\n"
+    #diagram += "\nLow Pass Filter:\n"
     diagram += lpf_diagram()
     
     return diagram
