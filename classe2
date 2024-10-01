@@ -546,11 +546,11 @@ def lpf_diagram():
 
 def generate_topology_diagram(matching_network_type, lpf_order=5):
     diagram = """
-                                                   ANTENNA
-                                                   SYSTEM
+                                                  ANTENNA
+                                                  SYSTEM
                                                    |  |
 ======= Class E Power Amplifier ===================|==|=======
-   VCC--[L1]--[C1]--[L2]--[C2]--.                  |  |
+   VCC--[L1]--[C1]--[C2]--[L2]--.                  |  |
                |                |       DRV--[MOSFET] |
               GND               |               |     |
                                 |              GND    |
