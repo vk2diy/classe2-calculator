@@ -496,7 +496,7 @@ def t_network(f, Z_out):
 def l_network_diagram():
     return """
  | Z<50Ω                                              |
-=|===== L Matching Network ===========================|=======
+=|===== L Matching Network ===========================|===
  |                                                    |
  `--[L_match]--+------.                               |
                |      |                               |
@@ -510,7 +510,7 @@ def l_network_diagram():
 def pi_network_diagram():
     return """
  | Z<50Ω                                              |
-=|===== Pi Matching Network ==========================|=======
+=|===== Pi Matching Network ==========================|===
  |                                                    |
  `--[C1_match]--[L_match]--[C2_match]--.              |
        |                      |        |              |
@@ -522,7 +522,7 @@ def pi_network_diagram():
 def t_network_diagram():
     return """
  | Z<50Ω                                              |
-=|===== T Matching Network ===========================|=======
+=|===== T Matching Network ===========================|===
  |                                                    |
  `--[L1_match]--+--[L2_match]--.                      |
                 |              |                      |
@@ -535,13 +535,13 @@ def t_network_diagram():
 
 def lpf_diagram():
     return """
-=|===== Low Pass Filter ==============================|=======
+=|===== Low Pass Filter ==============================|===
  |                                                    |
  `--[C1_lpf]--[L2_lpf]--[C3_lpf]--[L4_lpf]--[C5_lpf]--'
        |                   |                   |      
       GND                 GND                 GND     
 
-==============================================================
+==========================================================
 """
 
 def generate_topology_diagram(matching_network_type, lpf_order=5):
@@ -549,11 +549,12 @@ def generate_topology_diagram(matching_network_type, lpf_order=5):
                                                   ANTENNA
                                                   SYSTEM
                                                    |  |
-======= Class E Power Amplifier ===================|==|=======
-   VCC--[L1]--[C1]--[C2]--[L2]--.                  |  |
-               |                |       DRV--[MOSFET] |
-              GND               |               |     |
-                                |              GND    |
+======= Class E Power Amplifier ===================|==|===
+                                                   |  |
+   VCC--[L1]--[C1]--[C2]--[L2]--.       DRV--[MOSFET] |
+               |                |               |     |
+              GND               |              GND    |
+                                |                     |
                                 |                     |
  .------------------------------'                     |"""
     
