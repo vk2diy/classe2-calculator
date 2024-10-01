@@ -651,9 +651,9 @@ def main():
         })
 
         for i, config in enumerate(matching_configs[:3], 1):
-            print(f" Configuration {i}:")
+            print(f"  Configuration {i}:")
             for j, (name, value) in enumerate(matching_components):
-                print(f"  {name}: {format_configuration(config[j], name[0])}")
+                print(f"   {name}: {format_configuration(config[j], name[0])}")
             print()
 
         # Low Pass Filter Configurations
@@ -666,7 +666,7 @@ def main():
         })
 
         for i, config in enumerate(lpf_configs[:3], 1):
-            print(f" Configuration {i}:")
+            print(f"  Configuration {i}:")
             for j, (component_type, _) in enumerate(lpf_components):
                 name = f" {component_type}{j+1}_lpf"
                 print(f"  {name}: {format_configuration(config[j], component_type)}")
