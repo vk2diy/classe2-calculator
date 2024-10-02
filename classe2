@@ -696,11 +696,10 @@ def ordinal(n):
     return f"{n}{suffix}"
 
 def print_lpf_configs_all_orders(f_cutoff, standard_capacitors_pf, standard_inductors_uh):
-    print("Low Pass Filter Configurations:")
     for order in range(7, 0, -1):
         precise_config, approx_config = calculate_lpf(f_cutoff, standard_capacitors_pf, standard_inductors_uh, order)
 
-        print(f"\n{ordinal(order)} Order Butterworth Filter:")
+        print(f"\n {ordinal(order)} Order Butterworth Filter:")
         print(f"  Precise configuration ({precise_config['error']:.2f}% error, {sum(len(v[0]) for k, v in precise_config.items() if k != 'error')} parts):")
         for key, value in precise_config.items():
             if key != 'error':
