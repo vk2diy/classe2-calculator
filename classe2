@@ -500,6 +500,13 @@ def format_capacitance_value(value):
     else:
         return format_number_for_clarity(f"{value*1e12:.3f}pF")
 
+def format_inductance_value(value_uh):
+    if value_uh >= 1e3:
+        return f"{value_uh/1e3:.2f}mH"
+    else:
+        return f"{value_uh:.2f}µH"
+
+
 def format_resistance_value(value):
     if value >= 1e6:
         return format_number_for_clarity(f"{value/1e6:.3f}MΩ")
@@ -805,17 +812,21 @@ def print_matching_network_config(config, config_name):
     for key, value in config.items():
         if key not in ['error', 'type']:
             combination, error, comb_type = value
-            unit = 'pF' if key.startswith('C') else 'µH'
-            
+
+            if key.startswith('C'):
+                format_func = lambda x: format_capacitance_value(convert_pf_to_f(x))
+            else:
+                format_func = format_inductance_value
+
             if comb_type == 'series':
-                component_str = ' + '.join(format_number_for_clarity(f"{c} {unit}") for c in combination)
+                component_str = ' + '.join(format_func(c) for c in combination)
             elif comb_type == 'parallel':
-                component_str = ' || '.join(format_number_for_clarity(f"{c} {unit}") for c in combination)
+                component_str = ' || '.join(format_func(c) for c in combination)
             else:  # single component
-                component_str = format_number_for_clarity(f"{combination[0]} {unit}")
-            
+                component_str = format_func(combination[0])
+
             total_value = sum(combination) if comb_type == 'series' else 1 / sum(1/c for c in combination) if comb_type == 'parallel' else combination[0]
-            formatted_value = format_number_for_clarity(f"{total_value} {unit}")
+            formatted_value = format_func(total_value)
             print(f"      {key}: {formatted_value} ({component_str})")
 
 def calculate_matching_network(topology, network_type, f):
