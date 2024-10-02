@@ -106,6 +106,18 @@ class ClassETopologyGenerator:
 
 from itertools import combinations_with_replacement
 
+def convert_f_to_pf(value_f):
+    return value_f * 1e12
+
+def convert_pf_to_f(value_pf):
+    return value_pf * 1e-12
+
+def convert_h_to_uh(value_h):
+    return value_h * 1e6
+
+def convert_uh_to_h(value_uh):
+    return value_uh * 1e-6
+
 def debug_print(*args, **kwargs):
     if debug_enabled:
         print("DEBUG: ", *args, file=sys.stderr, **kwargs)
@@ -197,96 +209,88 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
     debug_print(f"  standard_capacitors = {standard_capacitors[:5]}... (first 5 elements)")
     debug_print(f"  standard_inductors = {standard_inductors[:5]}... (first 5 elements)")
     debug_print(f"  center_freq = {center_freq}")
+
     configs = []
-    
+
     component_values = dict(matching_network)
-    
+
     # Precise configuration
     precise_config = {}
-
     for component, value in component_values.items():
         if component.startswith('C'):
-            standard_values = standard_capacitors
-            unit = 'pF'
-            value_converted = value * 1e12  # Convert F to pF
+            std_values = standard_capacitors
+            value_pf = convert_f_to_pf(value)
         else:
-            standard_values = standard_inductors
-            unit = 'µH'
-            value_converted = value * 1e6  # Convert H to µH
-        precise_config[component] = find_best_component_combination(value_converted, standard_values, unit)
+            std_values = standard_inductors
+            value_uh = convert_h_to_uh(value)
+        precise_config[component] = find_best_component_combination(value_pf if component.startswith('C') else value_uh, std_values)
 
     precise_config['type'] = 'precise'
-    precise_config['error'] = max(v[2] for v in precise_config.values() if isinstance(v, tuple))
+    precise_config['error'] = max(v[1] for v in precise_config.values() if isinstance(v, tuple))
     configs.append(precise_config)
-    
+
     # Approximate configurations
-    approx_configs = []
     for component in component_values.keys():
-        approx_values = {}
+        approx_config = {}
         for comp, val in component_values.items():
             if comp.startswith('C'):
                 std_values = standard_capacitors
-                unit = 'pF'
-                val_converted = val * 1e12  # Convert F to pF
+                val_converted = convert_f_to_pf(val)
             else:
                 std_values = standard_inductors
-                unit = 'µH'
-                val_converted = val * 1e6  # Convert H to µH
-            
+                val_converted = convert_h_to_uh(val)
+
             if comp == component:
-                # For the current component, find the next best value
-                closest = find_closest_standard_value(val_converted, std_values)
-                next_best = find_next_best_standard_value(val_converted, std_values, closest)
-                approx_values[comp] = next_best
+                # For the current component, find a simpler combination
+                combination, error, comb_type = find_best_component_combination(val_converted, std_values, max_components=2)
             else:
-                approx_values[comp] = find_closest_standard_value(val_converted, std_values)
-        
-        rebalanced = rebalance_matching_network(component_values, matching_network_type, approx_values, component, standard_capacitors, standard_inductors)
-        
-        config = {}
-        for comp, value in rebalanced.items():
-            unit = 'pF' if comp.startswith('C') else 'µH'
-            ideal_value = component_values[comp] * (1e12 if unit == 'pF' else 1e6)
-            config[comp] = (value, [value], calculate_error_percentage(ideal_value, value), 'single')
-        
-        config['type'] = f'approximate_{component}'
-        config['error'] = max(v[2] for v in config.values() if isinstance(v, tuple))
-        approx_configs.append(config)
-    
-    # Sort approximate configurations by total error and take the top 2
-    approx_configs.sort(key=lambda x: x['error'])
-    configs.extend(approx_configs[:2])
-    
-    return configs
+                # For other components, use the closest standard value
+                closest = min(std_values, key=lambda x: abs(x - val_converted))
+                combination, error, comb_type = (closest,), calculate_error_percentage(val_converted, closest), 'single'
+
+            approx_config[comp] = (combination, error, comb_type)
+
+        approx_config['type'] = f'approximate_{component}'
+        approx_config['error'] = max(v[1] for v in approx_config.values() if isinstance(v, tuple))
+        configs.append(approx_config)
+
+    # Sort configurations by error and return top 3
+    return sorted(configs, key=lambda x: x['error'])[:3]
 
 def find_next_best_standard_value(target_value, standard_values, closest_value):
     sorted_values = sorted(standard_values, key=lambda x: abs(x - target_value))
     return sorted_values[sorted_values.index(closest_value) + 1]
 
-def find_best_component_combination(target_value, standard_values, unit, max_components=3):
+def find_best_component_combination(target_value, standard_values, max_components=3):
     debug_print(f"DEBUG: find_best_component_combination input:")
     debug_print(f"  target_value = {target_value}")
     debug_print(f"  standard_values = {standard_values[:5]}... (first 5 elements)")
-    debug_print(f"  unit = {unit}")
     debug_print(f"  max_components = {max_components}")
     target_value = float(target_value)  # Ensure target_value is a float
     debug_print(f"  target_value (floatified) = {target_value}")
-
     best_combination = None
     best_error = float('inf')
+    best_type = None
     
     for n in range(1, max_components + 1):
         for combination in itertools.combinations_with_replacement(standard_values, n):
-            total = sum(combination)
-            error = calculate_error_percentage(target_value, total)
+            series_value = sum(combination)
+            parallel_value = 1 / sum(1/c for c in combination) if all(c != 0 for c in combination) else float('inf')
             
-            if error < best_error:
-                best_error = error
+            series_error = calculate_error_percentage(target_value, series_value)
+            parallel_error = calculate_error_percentage(target_value, parallel_value)
+            
+            if series_error < best_error:
                 best_combination = combination
-
-    total_value = sum(best_combination)
-    combination_type = 'series' if len(best_combination) == 1 else 'parallel'
-    return (total_value, list(best_combination), best_error, combination_type)
+                best_error = series_error
+                best_type = 'series'
+            
+            if parallel_error < best_error:
+                best_combination = combination
+                best_error = parallel_error
+                best_type = 'parallel'
+    
+    return best_combination, best_error, best_type
 
 def calculate_error_percentage(ideal, actual):
     error = abs(ideal - actual) / ideal * 100
@@ -800,22 +804,18 @@ def print_matching_network_config(config, config_name):
     print(f"    {config_name} ({config['error']:.2f}% error):")
     for key, value in config.items():
         if key not in ['error', 'type']:
-            if len(value) == 4:
-                component_value, components, error, combination_type = value
-            else:
-                component_value, components, error = value
-                combination_type = 'single'
-
+            combination, error, comb_type = value
             unit = 'pF' if key.startswith('C') else 'µH'
-
-            if combination_type == 'series':
-                component_str = ' + '.join(format_number_for_clarity(f"{c} {unit}") for c in components)
-            elif combination_type == 'parallel':
-                component_str = ' || '.join(format_number_for_clarity(f"{c} {unit}") for c in components)
+            
+            if comb_type == 'series':
+                component_str = ' + '.join(format_number_for_clarity(f"{c} {unit}") for c in combination)
+            elif comb_type == 'parallel':
+                component_str = ' || '.join(format_number_for_clarity(f"{c} {unit}") for c in combination)
             else:  # single component
-                component_str = format_number_for_clarity(f"{components[0]} {unit}")
-
-            formatted_value = format_number_for_clarity(f"{component_value} {unit}")
+                component_str = format_number_for_clarity(f"{combination[0]} {unit}")
+            
+            total_value = sum(combination) if comb_type == 'series' else 1 / sum(1/c for c in combination) if comb_type == 'parallel' else combination[0]
+            formatted_value = format_number_for_clarity(f"{total_value} {unit}")
             print(f"      {key}: {formatted_value} ({component_str})")
 
 def calculate_matching_network(topology, network_type, f):
