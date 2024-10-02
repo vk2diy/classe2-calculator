@@ -9,6 +9,8 @@ import sys
 from bisect import bisect_left
 from collections import OrderedDict
 from math import isclose
+from datetime import datetime, timezone
+
 
 debug_enabled = False
 
@@ -106,6 +108,14 @@ class ClassETopologyGenerator:
         return { "peak_vds": peak_vds, "bandwidth": bandwidth, "second_harmonic": second_harmonic, "third_harmonic": third_harmonic, "drain_efficiency": drain_efficiency, "max_drain_current": max_drain_current }
 
 from itertools import combinations_with_replacement
+
+def get_utc_date():
+    # Get the current UTC time
+    utc_now = datetime.now(timezone.utc)
+
+    # Format the date string
+    # This format closely mimics the output of the 'date' command
+    return utc_now.strftime("%a %b %d %H:%M:%S UTC %Y")
 
 def convert_f_to_pf(value_f):
     return value_f * 1e12
@@ -984,6 +994,10 @@ def main():
 
     mosfet_data = mosfets[args.mosfet]
     mosfet_info = f"{args.mosfet} (Vdss={mosfet_data['vdss_v']}V, Id={mosfet_data['id_a']}A, Rds_on={mosfet_data['rds_on_o']}Ω, Ciss={mosfet_data['ciss_pf']}pF, Coss={mosfet_data['coss_pf']}pF, Crss={mosfet_data['crss_pf']}pF, Vgs_th={mosfet_data['vgs_th_v']}V)"
+
+    print( "Command line:", " ".join(sys.argv))
+    utc_date = get_utc_date()
+    print(f"UTC datetime: {utc_date}")
 
     print("\nInput parameters:")
     print(f" Output Power = {format_power_value(args.power)}")
