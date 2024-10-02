@@ -658,10 +658,9 @@ def calculate_lpf(f_cutoff, standard_capacitors_pf, standard_inductors_uh, order
         else:
             raise ValueError("Unsupported filter order. Only orders 1-7 are supported.")
 
-    # Calculate the ideal component values
     w_c = 2 * math.pi * f_cutoff
     g_values = calculate_butterworth_coefficients(order)
-    
+
     component_values = []
     for i, g in enumerate(g_values, 1):
         if i % 2 == 1:  # Odd index: capacitor
@@ -670,42 +669,68 @@ def calculate_lpf(f_cutoff, standard_capacitors_pf, standard_inductors_uh, order
             value = g * 50 / w_c * 1e6  # Convert to µH
         component_values.append(value)
 
-    print(f"DEBUG: Calculated component values: {component_values}")
-
     precise_config = {}
+    approx_config = {}
     for i, value in enumerate(component_values, 1):
         key = f"{'C' if i % 2 else 'L'}{(i + 1) // 2}"
         std_values = standard_capacitors_pf if i % 2 else standard_inductors_uh
+
+        # Precise configuration
         combination, error, comb_type = find_best_component_combination(value, std_values)
         precise_config[key] = (combination, error, comb_type)
 
+        # Approximate configuration (lower component count)
+        approx_combination, approx_error, approx_comb_type = find_best_component_combination(value, std_values, max_components=1)
+        approx_config[key] = (approx_combination, approx_error, approx_comb_type)
+
     precise_config['error'] = max(v[1] for v in precise_config.values())
+    approx_config['error'] = max(v[1] for v in approx_config.values())
 
-    approx_configs = []
-    for _ in range(8):  # Generate 8 approximate configurations
-        approx_config = {}
-        for i, value in enumerate(component_values, 1):
-            key = f"{'C' if i % 2 else 'L'}{(i + 1) // 2}"
-            std_values = standard_capacitors_pf if i % 2 else standard_inductors_uh
-            # Get top 3 combinations for each component
-            top_combinations = find_top_component_combinations(value, std_values, max_components=2, top_n=3)
-            # Randomly select one of the top combinations
-            combination, error, comb_type = random.choice(top_combinations)
-            approx_config[key] = (combination, error, comb_type)
+    return precise_config, approx_config
 
-        approx_config['error'] = max(v[1] for v in approx_config.values())
-        approx_configs.append(approx_config)
+def ordinal(n):
+    if 11 <= (n % 100) <= 13:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+    return f"{n}{suffix}"
 
-    # Sort approximate configurations by error
-    approx_configs.sort(key=lambda x: x['error'])
+def print_lpf_configs_all_orders(f_cutoff, standard_capacitors_pf, standard_inductors_uh):
+    print("Low Pass Filter Configurations:")
+    for order in range(7, 0, -1):
+        precise_config, approx_config = calculate_lpf(f_cutoff, standard_capacitors_pf, standard_inductors_uh, order)
 
-    # Remove duplicate configurations
-    unique_approx_configs = []
-    for config in approx_configs:
-        if not any(are_configs_similar(config, unique_config) for unique_config in unique_approx_configs):
-            unique_approx_configs.append(config)
+        print(f"\n{ordinal(order)} Order Butterworth Filter:")
+        print(f"  Precise configuration ({precise_config['error']:.2f}% error, {sum(len(v[0]) for k, v in precise_config.items() if k != 'error')} parts):")
+        for key, value in precise_config.items():
+            if key != 'error':
+                combination, error, comb_type = value
+                if key.startswith('C'):
+                    format_func = lambda x: format_capacitance_value(convert_pf_to_f(x))
+                else:
+                    format_func = lambda x: format_inductance_value(convert_uh_to_h(x))
 
-    return [precise_config] + unique_approx_configs[:2]
+                if comb_type == 'series':
+                    component_str = ' + '.join(format_func(c) for c in combination)
+                elif comb_type == 'parallel':
+                    component_str = ' || '.join(format_func(c) for c in combination)
+                else:
+                    component_str = format_func(combination[0])
+
+                total_value = sum(combination) if comb_type == 'series' else 1 / sum(1/c for c in combination) if comb_type == 'parallel' else combination[0]
+                print(f"   {key}_lpf: {format_func(total_value)} ({component_str})")
+
+        print(f"  Approximate configuration ({approx_config['error']:.2f}% error, {sum(len(v[0]) for k, v in approx_config.items() if k != 'error')} parts):")
+        for key, value in approx_config.items():
+            if key != 'error':
+                combination, error, comb_type = value
+                if key.startswith('C'):
+                    format_func = lambda x: format_capacitance_value(convert_pf_to_f(x))
+                else:
+                    format_func = lambda x: format_inductance_value(convert_uh_to_h(x))
+
+                component_str = format_func(combination[0])
+                print(f"   {key}_lpf: {component_str}")
 
 def find_top_component_combinations(target_value, standard_values, max_components=3, top_n=3):
     all_combinations = []
@@ -1058,8 +1083,11 @@ def main():
         debug_print(f"f_cutoff = {f_cutoff}")
         # ----------------------------------------------------
 
-        lpf_configs = calculate_lpf(f_cutoff,COMPONENTS['capacitors_pf'],COMPONENTS['inductors_uh'])
-        print_lpf_configs(lpf_configs)
+        #lpf_configs = calculate_lpf(f_cutoff,COMPONENTS['capacitors_pf'],COMPONENTS['inductors_uh'])
+        #print_lpf_configs(lpf_configs)
+
+        print("\nLow Pass Filter Configurations:")
+        print_lpf_configs_all_orders(f_cutoff, COMPONENTS['capacitors_pf'], COMPONENTS['inductors_uh'])
 
         # ---------------------------------------------------
 
