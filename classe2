@@ -203,6 +203,7 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
     
     # Precise configuration
     precise_config = {}
+
     for component, value in component_values.items():
         if component.startswith('C'):
             standard_values = standard_capacitors
@@ -210,10 +211,10 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
             value_converted = value * 1e12  # Convert F to pF
         else:
             standard_values = standard_inductors
-            unit = 'nH'
-            value_converted = value * 1e9  # Convert H to nH
+            unit = 'µH'
+            value_converted = value * 1e6  # Convert H to µH
         precise_config[component] = find_best_component_combination(value_converted, standard_values, unit)
-    
+
     precise_config['type'] = 'precise'
     precise_config['error'] = max(v[2] for v in precise_config.values() if isinstance(v, tuple))
     configs.append(precise_config)
@@ -228,17 +229,17 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
                 val_converted = val * 1e12  # Convert F to pF
             else:
                 std_values = standard_inductors
-                unit = 'nH'
-                val_converted = val * 1e9  # Convert H to nH
+                unit = 'µH'
+                val_converted = val * 1e6  # Convert H to µH
             approx_values[comp] = find_closest_standard_value(val_converted, std_values)
         
         rebalanced = rebalance_matching_network(component_values, matching_network_type, approx_values, component, standard_capacitors, standard_inductors)
         
         config = {}
         for comp, value in rebalanced.items():
-            unit = 'pF' if comp.startswith('C') else 'nH'
-            ideal_value = component_values[comp] * (1e12 if unit == 'pF' else 1e9)
-            config[comp] = (value, unit, calculate_error_percentage(ideal_value, value))
+            unit = 'pF' if comp.startswith('C') else 'µH'
+            ideal_value = component_values[comp] * (1e12 if unit == 'pF' else 1e6)
+            config[comp] = (value, [value], calculate_error_percentage(ideal_value, value), 'single')
         
         config['type'] = f'approximate_{component}'
         config['error'] = max(v[2] for v in config.values() if isinstance(v, tuple))
@@ -266,9 +267,10 @@ def find_best_component_combination(target_value, standard_values, unit, max_com
             if error < best_error:
                 best_error = error
                 best_combination = combination
-    
+
     total_value = sum(best_combination)
-    return (total_value, list(best_combination), best_error)
+    combination_type = 'series' if len(best_combination) == 1 else 'parallel'
+    return (total_value, list(best_combination), best_error, combination_type)
 
 def calculate_error_percentage(ideal, actual):
     error = abs(ideal - actual) / ideal * 100
@@ -780,8 +782,24 @@ def generate_topology_diagram(matching_network_type, lpf_order=5):
 
 def print_matching_network_config(config):
     for key, value in config.items():
-        if key != 'error' and key != 'type':
-            print(f"    {key}: {value[0]:.2f} {value[1]} (error: {value[2]:.2f}%)")
+        if key not in ['error', 'type']:
+            if len(value) == 4:
+                component_value, components, error, combination_type = value
+            else:
+                component_value, components, error = value
+                combination_type = 'single'
+
+            unit = 'pF' if key.startswith('C') else 'µH'
+
+            if combination_type == 'series':
+                component_str = ' + '.join(f"{c:.3f}{unit}" for c in components)
+            elif combination_type == 'parallel':
+                component_str = ' || '.join(f"{c:.3f}{unit}" for c in components)
+            else:  # single component
+                component_str = f"{components[0]:.3f}{unit}"
+
+            print(f"    {key}: {component_value:.2f}{unit} ({component_str}) (error: {error:.2f}%)")
+
     print(f"    Total error: {config['error']:.2f}%")
 
 def calculate_matching_network(topology, network_type, f):
