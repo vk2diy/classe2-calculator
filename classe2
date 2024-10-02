@@ -1,11 +1,15 @@
 #!/usr/bin/python
 import argparse
-import math
+import itertools
 import json
+import math
 import re
+import sys
 from bisect import bisect_left
 from collections import OrderedDict
-import itertools
+from math import isclose
+
+debug_enabled = False
 
 class ClassETopologyGenerator:
 
@@ -102,6 +106,10 @@ class ClassETopologyGenerator:
 
 from itertools import combinations_with_replacement
 
+def debug_print(*args, **kwargs):
+    if debug_enabled:
+        print("DEBUG: ", *args, file=sys.stderr, **kwargs)
+
 def load_components(filename='components.json'):
     with open(filename, 'r') as f:
         return json.load(f)
@@ -178,6 +186,122 @@ def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_f
     srf_margin = L2_srf / center_freq
     
     return total_error, srf_margin
+
+def find_closest_standard_value(target_value, standard_values):
+    return min(standard_values, key=lambda x: abs(x - target_value))
+
+def generate_matching_network_configs(matching_network, matching_network_type, standard_capacitors, standard_inductors, center_freq):
+    debug_print(f"DEBUG: generate_matching_network_configs input:")
+    debug_print(f"  matching_network = {matching_network}")
+    debug_print(f"  matching_network_type = {matching_network_type}")
+    debug_print(f"  standard_capacitors = {standard_capacitors[:5]}... (first 5 elements)")
+    debug_print(f"  standard_inductors = {standard_inductors[:5]}... (first 5 elements)")
+    debug_print(f"  center_freq = {center_freq}")
+    configs = []
+    
+    component_values = dict(matching_network)
+    
+    # Precise configuration
+    precise_config = {}
+    for component, value in component_values.items():
+        if component.startswith('C'):
+            standard_values = standard_capacitors
+            unit = 'pF'
+            value_converted = value * 1e12  # Convert F to pF
+        else:
+            standard_values = standard_inductors
+            unit = 'nH'
+            value_converted = value * 1e9  # Convert H to nH
+        precise_config[component] = find_best_component_combination(value_converted, standard_values, unit)
+    
+    precise_config['type'] = 'precise'
+    precise_config['error'] = max(v[2] for v in precise_config.values() if isinstance(v, tuple))
+    configs.append(precise_config)
+    
+    # Approximate configurations
+    for component in component_values.keys():
+        approx_values = {}
+        for comp, val in component_values.items():
+            if comp.startswith('C'):
+                std_values = standard_capacitors
+                unit = 'pF'
+                val_converted = val * 1e12  # Convert F to pF
+            else:
+                std_values = standard_inductors
+                unit = 'nH'
+                val_converted = val * 1e9  # Convert H to nH
+            approx_values[comp] = find_closest_standard_value(val_converted, std_values)
+        
+        rebalanced = rebalance_matching_network(component_values, matching_network_type, approx_values, component, standard_capacitors, standard_inductors)
+        
+        config = {}
+        for comp, value in rebalanced.items():
+            unit = 'pF' if comp.startswith('C') else 'nH'
+            ideal_value = component_values[comp] * (1e12 if unit == 'pF' else 1e9)
+            config[comp] = (value, unit, calculate_error_percentage(ideal_value, value))
+        
+        config['type'] = f'approximate_{component}'
+        config['error'] = max(v[2] for v in config.values() if isinstance(v, tuple))
+        configs.append(config)
+    
+    return configs
+
+def find_best_component_combination(target_value, standard_values, unit, max_components=3):
+    debug_print(f"DEBUG: find_best_component_combination input:")
+    debug_print(f"  target_value = {target_value}")
+    debug_print(f"  standard_values = {standard_values[:5]}... (first 5 elements)")
+    debug_print(f"  unit = {unit}")
+    debug_print(f"  max_components = {max_components}")
+    target_value = float(target_value)  # Ensure target_value is a float
+    debug_print(f"  target_value (floatified) = {target_value}")
+
+    best_combination = None
+    best_error = float('inf')
+    
+    for n in range(1, max_components + 1):
+        for combination in itertools.combinations_with_replacement(standard_values, n):
+            total = sum(combination)
+            error = calculate_error_percentage(target_value, total)
+            
+            if error < best_error:
+                best_error = error
+                best_combination = combination
+    
+    total_value = sum(best_combination)
+    return (total_value, list(best_combination), best_error)
+
+def calculate_error_percentage(ideal, actual):
+    error = abs(ideal - actual) / ideal * 100
+    debug_print(f"calculate_error_percentage(ideal={ideal}, actual={actual})")
+    debug_print(f"calculate_error_percentage() returning {error}")
+    return error
+
+def rebalance_matching_network(C1, L, C2, standard_capacitors, standard_inductors):
+    debug_print(f"standard_capacitors = {standard_capacitors[:5]}... (first 5 elements)")
+    debug_print(f"standard_inductors = {standard_inductors[:5]}... (first 5 elements)")
+
+def rebalance_matching_network(component_values, matching_network_type, approx_values, fixed_component, standard_capacitors, standard_inductors):
+    debug_print(f"rebalance_matching_network input:")
+    debug_print(f" component_values = {component_values}")
+    debug_print(f" matching_network_type = {matching_network_type}")
+    debug_print(f" approx_values = {approx_values}")
+    debug_print(f" fixed_component = {fixed_component}")
+    debug_print(f" standard_capacitors = {standard_capacitors}")
+    debug_print(f" standard_inductors = {standard_inductors}")
+    # Implement rebalancing logic here
+    # For now, we'll just return the approx_values as is
+    return approx_values
+
+def rank_matching_network_configs(configs, ideal_components):
+    for config in configs:
+        errors = []
+        for comp, value in config.items():
+            if comp != 'type':
+                ideal_value = ideal_components[comp]
+                errors.append(calculate_error_percentage(ideal_value, value[0]))
+        config['max_error'] = max(errors)
+
+    return sorted(configs, key=lambda x: x['max_error'])
 
 def find_closest(arr, target):
     pos = bisect_left(arr, target)
@@ -473,7 +597,17 @@ def get_standard_value(value, component_type):
     return closest * 1e-6 if component_type.startswith('L') else closest * 1e-12  # Convert back to H or F
 
 def calculate_output_impedance(f, C1):
-    return 0.28 / (2 * math.pi * f * C1)
+    if isinstance(C1, dict):
+        C1_value = C1.get('value', C1.get('C1', None))
+    elif isinstance(C1, (int, float)):
+        C1_value = C1
+    else:
+        raise ValueError(f"Unexpected type for C1: {type(C1)}")
+
+    if C1_value is None or not isinstance(C1_value, (int, float)):
+        raise ValueError(f"Invalid C1 value: {C1_value}")
+
+    return 0.28 / (2 * math.pi * f * C1_value)
 
 def get_component_options(target, component_type, tolerance=0.1, max_options=5):
     options = []
@@ -485,7 +619,7 @@ def get_component_options(target, component_type, tolerance=0.1, max_options=5):
     return sorted(options, key=lambda x: x[0])[:max_options]
 
 def calculate_lpf(f_cutoff, order=5, tolerance=0.1, max_configs=3):
-    print(f"DEBUG: Entered calculate_lpf with f_cutoff={f_cutoff}, tolerance={tolerance}, max_configs={max_configs}")
+    debug_print(f"Entered calculate_lpf with f_cutoff={f_cutoff}, tolerance={tolerance}, max_configs={max_configs}")
     g_values = [1.0, 1.5963, 2.0967, 1.5963, 1.0]
     Z0 = 50
     omega_c = 2 * math.pi * f_cutoff
@@ -508,19 +642,19 @@ def calculate_lpf(f_cutoff, order=5, tolerance=0.1, max_configs=3):
             L = (Z0 * g) / omega_c
             component_options.append(get_component_options(L, 'L'))
 
-    print(f"DEBUG: Component options: {component_options}")
+    debug_print(f"Component options: {component_options}")
 
     configurations = list(itertools.product(*component_options))
 
-    print("DEBUG: About to rebalance LPF configurations")
+    debug_print("About to rebalance LPF configurations")
     rebalanced_configs = [rebalance_lpf(config, Z0, omega_c) for config in configurations]
 
     sorted_configs = sorted(rebalanced_configs, key=lambda x: sum(c[0] for c in x))[:max_configs]
-    print(f"DEBUG: Returning {len(sorted_configs)} LPF configurations")
+    debug_print(f"Returning {len(sorted_configs)} LPF configurations")
     return sorted_configs
 
 def rebalance_lpf(components, Z0, omega_c):
-    print("DEBUG: Rebalancing LPF components")
+    debug_print("Rebalancing LPF components")
     rebalanced = []
     for i, (error, value) in enumerate(components):
         if i == 0:
@@ -543,7 +677,7 @@ def rebalance_lpf(components, Z0, omega_c):
             else:
                 rebalanced.append((error, value))
 
-    print(f"DEBUG: Rebalanced components: {rebalanced}")
+    debug_print(f"Rebalanced components: {rebalanced}")
     return rebalanced
 
 def l_network(f, Z_out):
@@ -644,16 +778,34 @@ def generate_topology_diagram(matching_network_type, lpf_order=5):
     
     return diagram
 
-def calculate_matching_network(f, C1, network_type):
+def print_matching_network_config(config):
+    for key, value in config.items():
+        if key != 'error' and key != 'type':
+            print(f"    {key}: {value[0]:.2f} {value[1]} (error: {value[2]:.2f}%)")
+    print(f"    Total error: {config['error']:.2f}%")
+
+def calculate_matching_network(topology, network_type, f):
+    # Extract C1 value
+    if isinstance(topology['C1'], dict):
+        C1 = topology['C1'].get('value', topology['C1'].get('C1', None))
+    else:
+        C1 = topology['C1']
+
+    if C1 is None or not isinstance(C1, (int, float)):
+        raise ValueError(f"Invalid C1 value in topology: {topology['C1']}")
+
     Z_out = calculate_output_impedance(f, C1)
     if network_type == 'l':
         L_match, C_match = l_network(f, Z_out)
+        debug_print(f"calculate_matching_network ('l' topology) returning L_match:{L_match}, C_match:{C_match}")
         return [('L_match', L_match), ('C_match', C_match)]
     elif network_type == 'pi':
         C1_match, L_match, C2_match = pi_network(f, Z_out)
+        debug_print(f"calculate_matching_network ('pi' topology) returning C1_match:{C1_match}, L_match:{L_match}, C2_match:{C2_match}")
         return [('C1_match', C1_match), ('L_match', L_match), ('C2_match', C2_match)]
     elif network_type == 't':
         L1_match, C_match, L2_match = t_network(f, Z_out)
+        debug_print(f"calculate_matching_network ('t' topology) returning L1_match:{L1_match}, C_match:{C_match}, L2_match:{L2_match}")
         return [('L1_match', L1_match), ('C_match', C_match), ('L2_match', L2_match)]
     else:
         raise ValueError("Invalid network type. Choose 'L', 'Pi', or 'T'.")
@@ -677,6 +829,7 @@ def create_parser():
     parser.add_argument('--r', type=float, help='Specify load resistance (ohms)')
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     return parser
 
@@ -686,7 +839,9 @@ def parse_arguments():
     return args
 
 def main():
+    global debug_enabled
     args = parse_arguments()
+    debug_enabled = args.debug
 
     matching_network_type = args.matching.lower() if args.matching else 'pi'
 
@@ -785,43 +940,40 @@ def main():
 
         # ------------------------------------------------------------------------------------
         # determine matching network
-        matching_components = calculate_matching_network(center_freq, topology['C1'], matching_network_type)
-        tolerance=0.1 # 10%
+        #matching_components = calculate_matching_network(center_freq, topology['C1'], matching_network_type)
+        #tolerance=0.1 # 10%
         # ----------------------------------------------------
 
-        # In the main function, after calculating matching_components
-        matching_targets = {}
-        for name, value in matching_components:
-            matching_targets[name] = value
+        matching_network = calculate_matching_network(topology, matching_network_type, center_freq)
+        debug_print(f"matching_network = {matching_network}")
+        configs = generate_matching_network_configs(matching_network, matching_network_type, COMPONENTS['capacitors_pf'], COMPONENTS['inductors_uh'], center_freq)
 
-        matching_configs = generate_combinations(matching_targets, tolerance, max_configs=3)
+        # Sort configurations by accuracy (lowest error first)
+        sorted_configs = sorted(configs, key=lambda x: x['error'])
 
-        print("\nMatching Network Configurations:")
-        for i, config in enumerate(matching_configs, 1):
-            total_error = sum(c[0] for c in config)
-            print(f"Configuration {i}: (Total error: {total_error:.2%})")
-            for j, (name, _) in enumerate(matching_components):
-                error, (value,), esr_factor, current_factor = config[j]
-                if name.startswith('L'):
-                    formatted_value = format_inductance_value(value)
-                else:  # Capacitor
-                    formatted_value = format_capacitance_value(value)
-                print(f"  {name}: ({error:.2%} error) {formatted_value} ({formatted_value}) [ESR={'standard' if esr_factor == 1 else f'{esr_factor:.2f}x'}] [I={'normal' if current_factor == 1 else f'{current_factor:.2f}x'}]")
-            print()
+        # Display results
+        print(f"\nMatching Network Configurations ({matching_network_type} topology):")
+        print("  Precise configuration:")
+        print_matching_network_config(sorted_configs[0])
+
+        print("\n  Top 2 approximate configurations:")
+        for i, config in enumerate(sorted_configs[1:3], 1):
+            print(f"    Approximate configuration {i}:")
+            print_matching_network_config(config)
 
         # ----------------------------------------------------
-        print("DEBUG: About to calculate LPF")
+        debug_print("About to calculate LPF")
         f_cutoff = center_freq * 1.5  # Make sure this line is present
-        print(f"DEBUG: f_cutoff = {f_cutoff}")
+        debug_print(f"f_cutoff = {f_cutoff}")
         # ----------------------------------------------------
 
         print("\nLow Pass Filter Configurations:")
         lpf_configs = calculate_lpf(f_cutoff, tolerance=0.1, max_configs=3)
-        print(f"DEBUG: Received {len(lpf_configs)} LPF configurations")
+        debug_print(f"Received {len(lpf_configs)} LPF configurations")
 
         for i, config in enumerate(lpf_configs, 1):
             total_error = sum(c[0] for c in config)
-            print(f"DEBUG: Processing LPF configuration {i} with total error {total_error:.2%}")
+            debug_print(f"Processing LPF configuration {i} with total error {total_error:.2%}")
             print(f"Configuration {i}: (Total error: {total_error:.2%})")
             for j, (error, value) in enumerate(config):
                 component_type = 'L' if j % 2 else 'C'
