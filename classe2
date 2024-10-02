@@ -3,6 +3,7 @@ import argparse
 import itertools
 import json
 import math
+import random
 import re
 import sys
 from bisect import bisect_left
@@ -271,14 +272,14 @@ def find_best_component_combination(target_value, standard_values, max_component
     best_combination = None
     best_error = float('inf')
     best_type = None
-    
+
     for n in range(1, max_components + 1):
         for combination in itertools.combinations_with_replacement(standard_values, n):
             series_value = sum(combination)
-            parallel_value = 1 / sum(1/c for c in combination) if all(c != 0 for c in combination) else float('inf')
+            parallel_value = 1 / sum(1/c for c in combination)
             
-            series_error = calculate_error_percentage(target_value, series_value)
-            parallel_error = calculate_error_percentage(target_value, parallel_value)
+            series_error = abs(target_value - series_value) / target_value * 100
+            parallel_error = abs(target_value - parallel_value) / target_value * 100
             
             if series_error < best_error:
                 best_combination = combination
@@ -289,7 +290,7 @@ def find_best_component_combination(target_value, standard_values, max_component
                 best_combination = combination
                 best_error = parallel_error
                 best_type = 'parallel'
-    
+
     return best_combination, best_error, best_type
 
 def calculate_error_percentage(ideal, actual):
@@ -640,67 +641,121 @@ def get_component_options(target, component_type, tolerance=0.1, max_options=5):
             options.append((error, std_value))
     return sorted(options, key=lambda x: x[0])[:max_options]
 
-def calculate_lpf(f_cutoff, order=5, tolerance=0.1, max_configs=3):
-    debug_print(f"Entered calculate_lpf with f_cutoff={f_cutoff}, tolerance={tolerance}, max_configs={max_configs}")
-    g_values = [1.0, 1.5963, 2.0967, 1.5963, 1.0]
-    Z0 = 50
-    omega_c = 2 * math.pi * f_cutoff
+def calculate_lpf(f_cutoff, standard_capacitors_pf, standard_inductors_uh, order=5):
+    debug_print(f"calculate_lpf() called with f_cutoff={f_cutoff}, standard_capacitors_pf={standard_capacitors_pf}, standard_inductors_uh={standard_inductors_uh}, order={order}")
+    def calculate_butterworth_coefficients(n):
+        coefficients = {
+            1: [2.0],
+            2: [1.4142, 1.4142],
+            3: [1.0, 2.0, 1.0],
+            4: [0.7654, 1.8478, 1.8478, 0.7654],
+            5: [0.6180, 1.6180, 2.0, 1.6180, 0.6180],
+            6: [0.5176, 1.4142, 1.9318, 1.9318, 1.4142, 0.5176],
+            7: [0.4450, 1.2470, 1.8019, 2.0000, 1.8019, 1.2470, 0.4450]
+        }
+        if n in coefficients:
+            return coefficients[n]
+        else:
+            raise ValueError("Unsupported filter order. Only orders 1-7 are supported.")
 
-    def get_component_options(target, component_type, max_options=5):
-        options = []
-        for value in COMPONENTS['inductors_uh' if component_type == 'L' else 'capacitors_pf']:
-            std_value = value * (1e-6 if component_type == 'L' else 1e-12)
-            error = abs(std_value - target) / target
-            if error <= tolerance:
-                options.append((error, std_value))
-        return sorted(options, key=lambda x: x[0])[:max_options]
+    # Calculate the ideal component values
+    w_c = 2 * math.pi * f_cutoff
+    g_values = calculate_butterworth_coefficients(order)
+    
+    component_values = []
+    for i, g in enumerate(g_values, 1):
+        if i % 2 == 1:  # Odd index: capacitor
+            value = g / (w_c * 50) * 1e12  # Convert to pF
+        else:  # Even index: inductor
+            value = g * 50 / w_c * 1e6  # Convert to µH
+        component_values.append(value)
 
-    component_options = []
-    for i, g in enumerate(g_values):
-        if i % 2 == 0:  # Shunt capacitors
-            C = g / (Z0 * omega_c)
-            component_options.append(get_component_options(C, 'C'))
-        else:  # Series inductors
-            L = (Z0 * g) / omega_c
-            component_options.append(get_component_options(L, 'L'))
+    print(f"DEBUG: Calculated component values: {component_values}")
 
-    debug_print(f"Component options: {component_options}")
+    precise_config = {}
+    for i, value in enumerate(component_values, 1):
+        key = f"{'C' if i % 2 else 'L'}{(i + 1) // 2}"
+        std_values = standard_capacitors_pf if i % 2 else standard_inductors_uh
+        combination, error, comb_type = find_best_component_combination(value, std_values)
+        precise_config[key] = (combination, error, comb_type)
 
-    configurations = list(itertools.product(*component_options))
+    precise_config['error'] = max(v[1] for v in precise_config.values())
 
-    debug_print("About to rebalance LPF configurations")
-    rebalanced_configs = [rebalance_lpf(config, Z0, omega_c) for config in configurations]
+    approx_configs = []
+    for _ in range(8):  # Generate 8 approximate configurations
+        approx_config = {}
+        for i, value in enumerate(component_values, 1):
+            key = f"{'C' if i % 2 else 'L'}{(i + 1) // 2}"
+            std_values = standard_capacitors_pf if i % 2 else standard_inductors_uh
+            # Get top 3 combinations for each component
+            top_combinations = find_top_component_combinations(value, std_values, max_components=2, top_n=3)
+            # Randomly select one of the top combinations
+            combination, error, comb_type = random.choice(top_combinations)
+            approx_config[key] = (combination, error, comb_type)
 
-    sorted_configs = sorted(rebalanced_configs, key=lambda x: sum(c[0] for c in x))[:max_configs]
-    debug_print(f"Returning {len(sorted_configs)} LPF configurations")
-    return sorted_configs
+        approx_config['error'] = max(v[1] for v in approx_config.values())
+        approx_configs.append(approx_config)
 
-def rebalance_lpf(components, Z0, omega_c):
-    debug_print("Rebalancing LPF components")
-    rebalanced = []
-    for i, (error, value) in enumerate(components):
-        if i == 0:
-            rebalanced.append((error, value))
-            continue
+    # Sort approximate configurations by error
+    approx_configs.sort(key=lambda x: x['error'])
 
-        prev_error, prev_value = rebalanced[-1]
-        if i % 2 == 0:  # Capacitor
-            ideal_C = 1 / (omega_c * Z0 * prev_value)
-            new_options = get_component_options(ideal_C, 'C')
-            if new_options:
-                rebalanced.append(min(new_options, key=lambda x: x[0]))
-            else:
-                rebalanced.append((error, value))
-        else:  # Inductor
-            ideal_L = Z0 / (omega_c * prev_value)
-            new_options = get_component_options(ideal_L, 'L')
-            if new_options:
-                rebalanced.append(min(new_options, key=lambda x: x[0]))
-            else:
-                rebalanced.append((error, value))
+    # Remove duplicate configurations
+    unique_approx_configs = []
+    for config in approx_configs:
+        if not any(are_configs_similar(config, unique_config) for unique_config in unique_approx_configs):
+            unique_approx_configs.append(config)
 
-    debug_print(f"Rebalanced components: {rebalanced}")
-    return rebalanced
+    return [precise_config] + unique_approx_configs[:2]
+
+def find_top_component_combinations(target_value, standard_values, max_components=3, top_n=3):
+    all_combinations = []
+    for n in range(1, max_components + 1):
+        for combination in itertools.combinations_with_replacement(standard_values, n):
+            series_value = sum(combination)
+            parallel_value = 1 / sum(1/c for c in combination)
+
+            series_error = abs(target_value - series_value) / target_value * 100
+            parallel_error = abs(target_value - parallel_value) / target_value * 100
+
+            all_combinations.append((combination, series_error, 'series'))
+            all_combinations.append((combination, parallel_error, 'parallel'))
+
+    return sorted(all_combinations, key=lambda x: x[1])[:top_n]
+
+def are_configs_similar(config1, config2, threshold=0.1):
+    if set(config1.keys()) != set(config2.keys()):
+        return False
+    for key in config1.keys():
+        if key != 'error':
+            comb1, _, _ = config1[key]
+            comb2, _, _ = config2[key]
+            if abs(sum(comb1) - sum(comb2)) / sum(comb1) > threshold:
+                return False
+    return True
+
+def print_lpf_configs(configs):
+    print("\n Low Pass Filter Configurations:")
+    for i, config in enumerate(configs):
+        config_type = "Precise configuration" if i == 0 else f"Approximate configuration {i}"
+        parts_count = sum(len(v[0]) for k, v in config.items() if k != 'error')
+        print(f"  {config_type} ({config['error']:.2f}% error, {parts_count} parts):")
+        for key, value in config.items():
+            if key != 'error':
+                combination, error, comb_type = value
+                if key.startswith('C'):
+                    format_func = lambda x: format_capacitance_value(convert_pf_to_f(x))
+                else:
+                    format_func = lambda x: format_inductance_value(convert_uh_to_h(x))
+
+                if comb_type == 'series':
+                    component_str = ' + '.join(format_func(c) for c in combination)
+                elif comb_type == 'parallel':
+                    component_str = ' || '.join(format_func(c) for c in combination)
+                else:
+                    component_str = format_func(combination[0])
+
+                total_value = sum(combination) if comb_type == 'series' else 1 / sum(1/c for c in combination) if comb_type == 'parallel' else combination[0]
+                print(f"   {key}: {format_func(total_value)} ({component_str})")
 
 def l_network(f, Z_out):
     L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * math.pi * f)
@@ -1003,22 +1058,8 @@ def main():
         debug_print(f"f_cutoff = {f_cutoff}")
         # ----------------------------------------------------
 
-        print("\nLow Pass Filter Configurations:")
-        lpf_configs = calculate_lpf(f_cutoff, tolerance=0.1, max_configs=3)
-        debug_print(f"Received {len(lpf_configs)} LPF configurations")
-
-        for i, config in enumerate(lpf_configs, 1):
-            total_error = sum(c[0] for c in config)
-            debug_print(f"Processing LPF configuration {i} with total error {total_error:.2%}")
-            print(f"Configuration {i}: (Total error: {total_error:.2%})")
-            for j, (error, value) in enumerate(config):
-                component_type = 'L' if j % 2 else 'C'
-                if component_type == 'L':
-                    formatted_value = format_inductance_value(value)
-                else:
-                    formatted_value = format_capacitance_value(value)
-                print(f"  {component_type}{j//2+1}: ({error:.2%} error) {formatted_value}")
-            print()
+        lpf_configs = calculate_lpf(f_cutoff,COMPONENTS['capacitors_pf'],COMPONENTS['inductors_uh'])
+        print_lpf_configs(lpf_configs)
 
         # ---------------------------------------------------
 
