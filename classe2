@@ -742,7 +742,7 @@ def print_lpf_configs_all_orders(f_cutoff, standard_capacitors_pf, standard_indu
     for order in range(7, 0, -1):
         precise_config, approx_config = calculate_lpf(f_cutoff, standard_capacitors_pf, standard_inductors_uh, order)
 
-        print(f" {ordinal(order)} Order Butterworth Precise     ({precise_config['error']:.2f}% error, {sum(len(v[0]) for k, v in precise_config.items() if k != 'error')} parts):", end="")
+        print(f" {ordinal(order)} = ({precise_config['error']:.2f}% error, {sum(len(v[0]) for k, v in precise_config.items() if k != 'error')} parts):", end="")
         for key, value in precise_config.items():
             if key != 'error':
                 combination, error, comb_type = value
@@ -762,7 +762,7 @@ def print_lpf_configs_all_orders(f_cutoff, standard_capacitors_pf, standard_indu
                 print(f" {key}_lpf={format_func(total_value)} ({component_str})", end="")
         print()
 
-        print(f" {ordinal(order)} Order Butterworth Approximate ({approx_config['error']:.2f}% error, {sum(len(v[0]) for k, v in approx_config.items() if k != 'error')} parts):", end="")
+        print(f" {ordinal(order)} ≈ ({approx_config['error']:.2f}% error, {sum(len(v[0]) for k, v in approx_config.items() if k != 'error')} parts):", end="")
         for key, value in approx_config.items():
             if key != 'error':
                 combination, error, comb_type = value
