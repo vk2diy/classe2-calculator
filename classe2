@@ -230,14 +230,18 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
     for component, value in component_values.items():
         if component.startswith('C'):
             std_values = standard_capacitors
-            value_pf = convert_f_to_pf(value)
+            value_converted = convert_f_to_pf(value)
         else:
             std_values = standard_inductors
-            value_uh = convert_h_to_uh(value)
-        precise_config[component] = find_best_component_combination(value_pf if component.startswith('C') else value_uh, std_values)
+            value_converted = convert_h_to_uh(value)
+        debug_print(f"Converting {component}: {value} to {value_converted} {'pF' if component.startswith('C') else 'µH'}")
+        combination, error, comb_type = find_best_component_combination(value_converted, std_values)
+        precise_config[component] = (combination, error, comb_type)
+        debug_print(f"Precise {component}: ideal={value_converted:.6f}, actual={sum(combination):.6f}, error={error:.6f}%")
 
     precise_config['type'] = 'precise'
     precise_config['error'] = max(v[1] for v in precise_config.values() if isinstance(v, tuple))
+    debug_print(f"Precise configuration total error: {precise_config['error']:.6f}%")
     configs.append(precise_config)
 
     # Approximate configurations
@@ -260,13 +264,26 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
                 combination, error, comb_type = (closest,), calculate_error_percentage(val_converted, closest), 'single'
 
             approx_config[comp] = (combination, error, comb_type)
+            debug_print(f"Approx {comp}: ideal={val_converted:.6f}, actual={sum(combination):.6f}, error={error:.6f}%")
 
         approx_config['type'] = f'approximate_{component}'
         approx_config['error'] = max(v[1] for v in approx_config.values() if isinstance(v, tuple))
+        debug_print(f"Approximate configuration ({component}) total error: {approx_config['error']:.6f}%")
         configs.append(approx_config)
 
     # Sort configurations by error and return top 3
-    return sorted(configs, key=lambda x: x['error'])[:3]
+    sorted_configs = sorted(configs, key=lambda x: x['error'])[:3]
+    for i, config in enumerate(sorted_configs):
+        debug_print(f"Configuration {i+1} type: {config['type']}, error: {config['error']:.6f}%")
+        for comp, value in config.items():
+            if comp != 'type' and comp != 'error':
+                if isinstance(value, tuple) and len(value) == 3:
+                    combination, error, comb_type = value
+                    debug_print(f"  {comp}: {combination}, error: {error:.6f}%, type: {comb_type}")
+                else:
+                    debug_print(f"  {comp}: {value} (unexpected format)")
+
+    return sorted_configs
 
 def find_next_best_standard_value(target_value, standard_values, closest_value):
     sorted_values = sorted(standard_values, key=lambda x: abs(x - target_value))
@@ -277,31 +294,45 @@ def find_best_component_combination(target_value, standard_values, max_component
     debug_print(f"  target_value = {target_value}")
     debug_print(f"  standard_values = {standard_values[:5]}... (first 5 elements)")
     debug_print(f"  max_components = {max_components}")
-    target_value = float(target_value)  # Ensure target_value is a float
-    debug_print(f"  target_value (floatified) = {target_value}")
+
+    # Determine the scale of the target value
+    scale = 10 ** math.floor(math.log10(target_value))
+    scaled_target = target_value / scale
+    scaled_standards = [v / scale for v in standard_values if v / scale <= 10 * scaled_target]
+
     best_combination = None
-    best_error = float('inf')
-    best_type = None
+    min_error = float('inf')
+    combination_type = None
 
-    for n in range(1, max_components + 1):
-        for combination in itertools.combinations_with_replacement(standard_values, n):
-            series_value = sum(combination)
-            parallel_value = 1 / sum(1/c for c in combination)
-            
-            series_error = abs(target_value - series_value) / target_value * 100
-            parallel_error = abs(target_value - parallel_value) / target_value * 100
-            
-            if series_error < best_error:
-                best_combination = combination
-                best_error = series_error
-                best_type = 'series'
-            
-            if parallel_error < best_error:
-                best_combination = combination
-                best_error = parallel_error
-                best_type = 'parallel'
+    for num_components in range(1, max_components + 1):
+        for combination in itertools.combinations_with_replacement(scaled_standards, num_components):
+            # Try series combination
+            series_sum = sum(combination)
+            series_error = abs(series_sum - scaled_target) / scaled_target * 100
 
-    return best_combination, best_error, best_type
+            # Try parallel combination
+            parallel_sum = 1 / sum(1/c for c in combination)
+            parallel_error = abs(parallel_sum - scaled_target) / scaled_target * 100
+
+            if series_error < min_error:
+                min_error = series_error
+                best_combination = combination
+                combination_type = 'series'
+
+            if parallel_error < min_error:
+                min_error = parallel_error
+                best_combination = combination
+                combination_type = 'parallel'
+
+    # Scale the best combination back to the original scale
+    best_combination = tuple(v * scale for v in best_combination)
+
+    debug_print(f"find_best_component_combination output:")
+    debug_print(f"  best_combination = {best_combination}")
+    debug_print(f"  min_error = {min_error}%")
+    debug_print(f"  combination_type = {combination_type}")
+    return best_combination, min_error, combination_type
+
 
 def calculate_error_percentage(ideal, actual):
     error = abs(ideal - actual) / ideal * 100
@@ -496,7 +527,7 @@ def format_inductance_value(value):
         return format_number_for_clarity(f"{value:.3f}H")
     elif value >= 1e-3:
         return format_number_for_clarity(f"{value*1e3:.3f}mH")
-    elif value >= 1e-6:
+    elif value >= 1e-9:  # Changed from 1e-6 to 1e-9
         return format_number_for_clarity(f"{value*1e6:.3f}µH")
     else:
         return format_number_for_clarity(f"{value*1e9:.3f}nH")
@@ -640,7 +671,9 @@ def calculate_output_impedance(f, C1):
     if C1_value is None or not isinstance(C1_value, (int, float)):
         raise ValueError(f"Invalid C1 value: {C1_value}")
 
-    return 0.28 / (2 * math.pi * f * C1_value)
+    Z_out = 0.28 / (2 * math.pi * f * C1_value)
+    debug_print(f"calculate_output_impedance: f={f}, C1={C1_value}, Z_out={Z_out}")
+    return Z_out
 
 def get_component_options(target, component_type, tolerance=0.1, max_options=5):
     options = []
@@ -791,25 +824,103 @@ def print_lpf_configs(configs):
                 total_value = sum(combination) if comb_type == 'series' else 1 / sum(1/c for c in combination) if comb_type == 'parallel' else combination[0]
                 print(f"   {key}: {format_func(total_value)} ({component_str})")
 
-def l_network(f, Z_out):
-    L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * math.pi * f)
-    C_match = 1 / (2 * math.pi * f * math.sqrt(Z_out * (50 - Z_out)))
+# old
+#def l_network(f, Z_out):
+#    L_match = math.sqrt(Z_out * (50 - Z_out)) / (2 * math.pi * f)
+#    C_match = 1 / (2 * math.pi * f * math.sqrt(Z_out * (50 - Z_out)))
+#    return L_match, C_match
+
+def pi_network(f, Z_source, Z_load):
+    w = 2 * math.pi * f
+    Q = math.sqrt((Z_load / Z_source) - 1)
+
+    XC1 = Z_source / Q
+    XL = Q * Z_load
+    XC2 = Z_load / Q
+
+    L_match = XL / w
+    C1_match = 1 / (w * XC1)
+    C2_match = 1 / (w * XC2)
+
+    # Convert to µH and pF for display
+    L_match_uh = L_match * 1e6
+    C1_match_pf = C1_match * 1e12
+    C2_match_pf = C2_match * 1e12
+
+    return C1_match, L_match, C2_match, L_match_uh, C1_match_pf, C2_match_pf
+
+def l_network(f, Z_source, Z_load):
+    w = 2 * math.pi * f
+
+    debug_print(f"l_network input: f={f}, Z_source={Z_source}, Z_load={Z_load}")
+
+    if Z_load > Z_source:
+        # Step-up transformation
+        Q = math.sqrt((Z_load / Z_source) - 1)
+        XL = Q * Z_source
+        XC = Z_load / Q
+    else:
+        # Step-down transformation
+        Q = math.sqrt((Z_source / Z_load) - 1)
+        XC = Z_source / Q
+        XL = Q * Z_load
+
+    L_match = XL / w
+    C_match = 1 / (w * XC)
+
+    debug_print(f"l_network calculations:")
+    debug_print(f"  Q = {Q}")
+    debug_print(f"  XL = {XL} ohms")
+    debug_print(f"  L_match = {L_match*1e6:.3f} µH")  # Convert to µH for display
+    debug_print(f"  XC = {XC} ohms")
+    debug_print(f"  C_match = {C_match*1e12:.3f} pF")  # Convert to pF for display
+
     return L_match, C_match
 
-def pi_network(f, Z_out):
-    Q = 1.5  # Quality factor, can be adjusted
-    C1_match = (Q / (2 * math.pi * f * 50)) * (1 + math.sqrt(1 + (50 / Z_out)))
-    L_match = (Q * 50) / (2 * math.pi * f)
-    C2_match = (Q / (2 * math.pi * f * Z_out)) * (1 + math.sqrt(1 + (Z_out / 50)))
-    #print(f"\nReturning pi_network(C1_match={C1_match},L_match={L_match},C2_match={C2_match}")
-    return C1_match, L_match, C2_match
+def t_network(f, Z_source, Z_load):
+    w = 2 * math.pi * f
 
-def t_network(f, Z_out):
-    Q = 1.5  # Quality factor, can be adjusted
-    L1_match = (Q * 50) / (2 * math.pi * f)
-    C_match = Q / (2 * math.pi * f * math.sqrt(50 * Z_out))
-    L2_match = (Q * Z_out) / (2 * math.pi * f)
+    debug_print(f"t_network input: f={f}, Z_source={Z_source}, Z_load={Z_load}")
+
+    # Use a default Q of 1.5 for T-network
+    Q = 1.5
+
+    XL1 = Q * Z_source
+    XL2 = Q * Z_load
+    XC = Q * (Z_source + Z_load) / (Q * Q + 1)
+
+    L1_match = XL1 / w
+    L2_match = XL2 / w
+    C_match = 1 / (w * XC)
+
+    debug_print(f"t_network calculations:")
+    debug_print(f"  Q = {Q}")
+    debug_print(f"  XL1 = {XL1} ohms")
+    debug_print(f"  L1_match = {L1_match*1e6:.3f} µH")  # Convert to µH for display
+    debug_print(f"  XL2 = {XL2} ohms")
+    debug_print(f"  L2_match = {L2_match*1e6:.3f} µH")  # Convert to µH for display
+    debug_print(f"  XC = {XC} ohms")
+    debug_print(f"  C_match = {C_match*1e12:.3f} pF")  # Convert to pF for display
+
     return L1_match, C_match, L2_match
+
+
+# old - but returned mH scale inductors
+#def pi_network(f, Z_out):
+#    Q = 1.5  # Quality factor, can be adjusted
+#    C1_match = (Q / (2 * math.pi * f * 50)) * (1 + math.sqrt(1 + (50 / Z_out)))
+#    L_match = (Q * 50) / (2 * math.pi * f)
+#    C2_match = (Q / (2 * math.pi * f * Z_out)) * (1 + math.sqrt(1 + (Z_out / 50)))
+#    #print(f"\nReturning pi_network(C1_match={C1_match},L_match={L_match},C2_match={C2_match}")
+#    return C1_match, L_match, C2_match
+
+# old
+#def t_network(f, Z_out):
+#    Q = 1.5  # Quality factor, can be adjusted
+#    L1_match = (Q * 50) / (2 * math.pi * f)
+#    C_match = Q / (2 * math.pi * f * math.sqrt(50 * Z_out))
+#    L2_match = (Q * Z_out) / (2 * math.pi * f)
+#    return L1_match, C_match, L2_match
 
 def l_network_diagram():
     return """
@@ -899,7 +1010,7 @@ def print_matching_network_config(config, config_name):
             if key.startswith('C'):
                 format_func = lambda x: format_capacitance_value(convert_pf_to_f(x))
             else:
-                format_func = format_inductance_value
+                format_func = lambda x: format_inductance_value(convert_uh_to_h(x))  # Make sure this conversion is correct
 
             if comb_type == 'series':
                 component_str = ' + '.join(format_func(c) for c in combination)
@@ -912,29 +1023,24 @@ def print_matching_network_config(config, config_name):
             formatted_value = format_func(total_value)
             print(f"      {key}: {formatted_value} ({component_str})")
 
-
 def calculate_matching_network(topology, network_type, f):
-    # Extract C1 value
-    if isinstance(topology['C1'], dict):
-        C1 = topology['C1'].get('value', topology['C1'].get('C1', None))
-    else:
-        C1 = topology['C1']
+    R_source = topology['R']
+    Z_load = 50  # Assuming 50 ohm system impedance
 
-    if C1 is None or not isinstance(C1, (int, float)):
-        raise ValueError(f"Invalid C1 value in topology: {topology['C1']}")
+    debug_print(f"calculate_matching_network input: topology={topology}, network_type={network_type}, f={f}")
+    debug_print(f"Source impedance R: {R_source}, Load impedance: {Z_load}")
 
-    Z_out = calculate_output_impedance(f, C1)
-    if network_type == 'l':
-        L_match, C_match = l_network(f, Z_out)
-        debug_print(f"calculate_matching_network ('l' topology) returning L_match:{L_match}, C_match:{C_match}")
-        return [('L_match', L_match), ('C_match', C_match)]
-    elif network_type == 'pi':
-        C1_match, L_match, C2_match = pi_network(f, Z_out)
-        debug_print(f"calculate_matching_network ('pi' topology) returning C1_match:{C1_match}, L_match:{L_match}, C2_match:{C2_match}")
+    if network_type == 'pi':
+        C1_match, L_match, C2_match, L_match_uh, C1_match_pf, C2_match_pf = pi_network(f, R_source, Z_load)
+        debug_print(f"calculate_matching_network ('pi' topology) returning C1_match:{C1_match_pf:.3f}pF, L_match:{L_match_uh:.3f}µH, C2_match:{C2_match_pf:.3f}pF")
         return [('C1_match', C1_match), ('L_match', L_match), ('C2_match', C2_match)]
+    elif network_type == 'l':
+        L_match, C_match = l_network(f, R_source, Z_load)
+        debug_print(f"calculate_matching_network ('l' topology) returning L_match:{L_match*1e6:.3f}µH, C_match:{C_match*1e12:.3f}pF")
+        return [('L_match', L_match), ('C_match', C_match)]
     elif network_type == 't':
-        L1_match, C_match, L2_match = t_network(f, Z_out)
-        debug_print(f"calculate_matching_network ('t' topology) returning L1_match:{L1_match}, C_match:{C_match}, L2_match:{L2_match}")
+        L1_match, C_match, L2_match = t_network(f, R_source, Z_load)
+        debug_print(f"calculate_matching_network ('t' topology) returning L1_match:{L1_match*1e6:.3f}µH, C_match:{C_match*1e12:.3f}pF, L2_match:{L2_match*1e6:.3f}µH")
         return [('L1_match', L1_match), ('C_match', C_match), ('L2_match', L2_match)]
     else:
         raise ValueError("Invalid network type. Choose 'L', 'Pi', or 'T'.")
