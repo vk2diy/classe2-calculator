@@ -203,7 +203,7 @@ def find_closest_standard_value(target_value, standard_values):
     return min(standard_values, key=lambda x: abs(x - target_value))
 
 def generate_matching_network_configs(matching_network, matching_network_type, standard_capacitors, standard_inductors, center_freq):
-    debug_print(f"DEBUG: generate_matching_network_configs input:")
+    debug_print(f"generate_matching_network_configs input:")
     debug_print(f"  matching_network = {matching_network}")
     debug_print(f"  matching_network_type = {matching_network_type}")
     debug_print(f"  standard_capacitors = {standard_capacitors[:5]}... (first 5 elements)")
@@ -262,7 +262,7 @@ def find_next_best_standard_value(target_value, standard_values, closest_value):
     return sorted_values[sorted_values.index(closest_value) + 1]
 
 def find_best_component_combination(target_value, standard_values, max_components=3):
-    debug_print(f"DEBUG: find_best_component_combination input:")
+    debug_print(f"find_best_component_combination input:")
     debug_print(f"  target_value = {target_value}")
     debug_print(f"  standard_values = {standard_values[:5]}... (first 5 elements)")
     debug_print(f"  max_components = {max_components}")
@@ -294,8 +294,8 @@ def find_best_component_combination(target_value, standard_values, max_component
 
 def calculate_error_percentage(ideal, actual):
     error = abs(ideal - actual) / ideal * 100
-    debug_print(f"calculate_error_percentage(ideal={ideal}, actual={actual})")
-    debug_print(f"calculate_error_percentage() returning {error}")
+#    debug_print(f"calculate_error_percentage(ideal={ideal}, actual={actual})")
+#    debug_print(f"calculate_error_percentage() returning {error}")
     return error
 
 def rebalance_matching_network(C1, L, C2, standard_capacitors, standard_inductors):
@@ -499,13 +499,6 @@ def format_capacitance_value(value):
         return format_number_for_clarity(f"{value*1e9:.3f}nF")
     else:
         return format_number_for_clarity(f"{value*1e12:.3f}pF")
-
-def format_inductance_value(value_uh):
-    if value_uh >= 1e3:
-        return f"{value_uh/1e3:.2f}mH"
-    else:
-        return f"{value_uh:.2f}µH"
-
 
 def format_resistance_value(value):
     if value >= 1e6:
@@ -808,7 +801,8 @@ def generate_topology_diagram(matching_network_type, lpf_order=5):
     return diagram
 
 def print_matching_network_config(config, config_name):
-    print(f"    {config_name} ({config['error']:.2f}% error):")
+    parts_count = sum(len(value[0]) for key, value in config.items() if key not in ['error', 'type'])
+    print(f"    {config_name} ({config['error']:.2f}% error, {parts_count} parts):")
     for key, value in config.items():
         if key not in ['error', 'type']:
             combination, error, comb_type = value
@@ -828,6 +822,7 @@ def print_matching_network_config(config, config_name):
             total_value = sum(combination) if comb_type == 'series' else 1 / sum(1/c for c in combination) if comb_type == 'parallel' else combination[0]
             formatted_value = format_func(total_value)
             print(f"      {key}: {formatted_value} ({component_str})")
+
 
 def calculate_matching_network(topology, network_type, f):
     # Extract C1 value
@@ -948,6 +943,7 @@ def main():
         print(f"\n[{band_id}] @ {format_frequency_value(band_data['start'] * 1e6)}-{format_frequency_value(band_data['end'] * 1e6)} (c={format_frequency_value(center_freq)}, nbw={format_frequency_value(bandwidth)}, bw={format_frequency_value(operating_params['bandwidth'])}, q={format_number(q_factor)})")
         print(f" Power Amplifier components:")
         print(f"  Topology = {args.type}")
+        debug_print(f"args.l1={args.l1}")
         if args.type == "infinite":
             if topology['L1_status'] == "user-specified":
                 print(f"  L1 = {format_inductance_value(topology['L1'])} (user-specified)")
@@ -998,10 +994,8 @@ def main():
 
         # Display results
         print(f"\nMatching Network Configurations ({matching_network_type} topology):")
-        print_matching_network_config(sorted_configs[0], "Precise configuration")
-        print("\n  Top 2 approximate configurations:")
-        for i, config in enumerate(sorted_configs[1:3], 1):
-            print_matching_network_config(config, f"Approximate configuration {i}")
+        for config in sorted_configs:
+            print_matching_network_config(config, "Precise configuration" if config['type'] == 'precise' else f"Approximate configuration {sorted_configs.index(config)}")
 
         # ----------------------------------------------------
         debug_print("About to calculate LPF")
