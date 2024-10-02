@@ -220,6 +220,7 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
     configs.append(precise_config)
     
     # Approximate configurations
+    approx_configs = []
     for component in component_values.keys():
         approx_values = {}
         for comp, val in component_values.items():
@@ -231,7 +232,14 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
                 std_values = standard_inductors
                 unit = 'µH'
                 val_converted = val * 1e6  # Convert H to µH
-            approx_values[comp] = find_closest_standard_value(val_converted, std_values)
+            
+            if comp == component:
+                # For the current component, find the next best value
+                closest = find_closest_standard_value(val_converted, std_values)
+                next_best = find_next_best_standard_value(val_converted, std_values, closest)
+                approx_values[comp] = next_best
+            else:
+                approx_values[comp] = find_closest_standard_value(val_converted, std_values)
         
         rebalanced = rebalance_matching_network(component_values, matching_network_type, approx_values, component, standard_capacitors, standard_inductors)
         
@@ -243,9 +251,17 @@ def generate_matching_network_configs(matching_network, matching_network_type, s
         
         config['type'] = f'approximate_{component}'
         config['error'] = max(v[2] for v in config.values() if isinstance(v, tuple))
-        configs.append(config)
+        approx_configs.append(config)
+    
+    # Sort approximate configurations by total error and take the top 2
+    approx_configs.sort(key=lambda x: x['error'])
+    configs.extend(approx_configs[:2])
     
     return configs
+
+def find_next_best_standard_value(target_value, standard_values, closest_value):
+    sorted_values = sorted(standard_values, key=lambda x: abs(x - target_value))
+    return sorted_values[sorted_values.index(closest_value) + 1]
 
 def find_best_component_combination(target_value, standard_values, unit, max_components=3):
     debug_print(f"DEBUG: find_best_component_combination input:")
@@ -780,7 +796,8 @@ def generate_topology_diagram(matching_network_type, lpf_order=5):
     
     return diagram
 
-def print_matching_network_config(config):
+def print_matching_network_config(config, config_name):
+    print(f"    {config_name} ({config['error']:.2f}% error):")
     for key, value in config.items():
         if key not in ['error', 'type']:
             if len(value) == 4:
@@ -792,15 +809,14 @@ def print_matching_network_config(config):
             unit = 'pF' if key.startswith('C') else 'µH'
 
             if combination_type == 'series':
-                component_str = ' + '.join(f"{c:.3f}{unit}" for c in components)
+                component_str = ' + '.join(format_number_for_clarity(f"{c} {unit}") for c in components)
             elif combination_type == 'parallel':
-                component_str = ' || '.join(f"{c:.3f}{unit}" for c in components)
+                component_str = ' || '.join(format_number_for_clarity(f"{c} {unit}") for c in components)
             else:  # single component
-                component_str = f"{components[0]:.3f}{unit}"
+                component_str = format_number_for_clarity(f"{components[0]} {unit}")
 
-            print(f"    {key}: {component_value:.2f}{unit} ({component_str}) (error: {error:.2f}%)")
-
-    print(f"    Total error: {config['error']:.2f}%")
+            formatted_value = format_number_for_clarity(f"{component_value} {unit}")
+            print(f"      {key}: {formatted_value} ({component_str})")
 
 def calculate_matching_network(topology, network_type, f):
     # Extract C1 value
@@ -971,13 +987,10 @@ def main():
 
         # Display results
         print(f"\nMatching Network Configurations ({matching_network_type} topology):")
-        print("  Precise configuration:")
-        print_matching_network_config(sorted_configs[0])
-
+        print_matching_network_config(sorted_configs[0], "Precise configuration")
         print("\n  Top 2 approximate configurations:")
         for i, config in enumerate(sorted_configs[1:3], 1):
-            print(f"    Approximate configuration {i}:")
-            print_matching_network_config(config)
+            print_matching_network_config(config, f"Approximate configuration {i}")
 
         # ----------------------------------------------------
         debug_print("About to calculate LPF")
