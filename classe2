@@ -157,6 +157,41 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
+def generate_inductor_configurations(target_value, inductors):
+    target_value = parse_inductance(target_value)
+    configurations = []
+
+    def backtrack(index, current_value, current_config, in_series=True):
+        if abs(current_value - target_value) / target_value <= 0.01:  # 1% accuracy
+            configurations.append((current_config, current_value))
+            return
+
+        if index >= len(inductors):
+            return
+
+        # Try adding in series
+        backtrack(index + 1, current_value + inductors[index], current_config + [inductors[index]], True)
+
+        # Try adding in parallel
+        if not in_series:
+            new_value = 1 / (1 / current_value + 1 / inductors[index])
+            backtrack(index + 1, new_value, current_config + [inductors[index]], False)
+
+        # Skip this inductor
+        backtrack(index + 1, current_value, current_config, in_series)
+
+    backtrack(0, 0, [], True)
+    backtrack(0, float('inf'), [], False)
+
+    # Sort configurations by accuracy and filter based on SRF
+    sorted_configs = sorted(configurations, key=lambda x: abs(x[1] - target_value) / target_value)
+    filtered_configs = [
+        (config, value) for config, value in sorted_configs
+        if estimate_srf(value) >= estimate_srf(target_value)
+    ]
+
+    return filtered_configs[:10]  # Return top 10 configurations
+
 def generate_configurations(component_options, max_configs=100):
     configs = []
     for config in itertools.product(*component_options):
@@ -1068,12 +1103,12 @@ def calculate_matching_network(topology, network_type, f):
 def create_parser():
     parser = argparse.ArgumentParser(description='Class-E RF Power Amplifier Calculator')
     
-    parser.add_argument('-p', '--power', type=float, required=True, help='Output power in watts')
-    parser.add_argument('-v', '--voltage', type=float, required=True, help='Supply voltage')
-    parser.add_argument('-b', '--bands', nargs='+', choices=AVAILABLE_BANDS, metavar='BANDLIST', required=True, help='Amateur radio band(s) (eg. 20m 40m)')
+    parser.add_argument('-p', '--power', type=float, help='Output power in watts')
+    parser.add_argument('-v', '--voltage', type=float, help='Supply voltage')
+    parser.add_argument('-b', '--bands', nargs='+', choices=AVAILABLE_BANDS, metavar='BANDLIST', help='Amateur radio band(s) (eg. 20m 40m)')
     parser.add_argument('-t', '--type', choices=['infinite', 'finite', 'inverse'], default='infinite', help='Topology type selection')
     parser.add_argument('-q', '--q-factor', type=float, help='Q factor (optional)')
-    parser.add_argument('-m', '--mosfet', choices=AVAILABLE_MOSFETS, metavar='MOSFET', required=True, help='MOSFET')
+    parser.add_argument('-m', '--mosfet', choices=AVAILABLE_MOSFETS, metavar='MOSFET', help='MOSFET')
     parser.add_argument('-M', '--matching', choices=['l', 'pi', 't'], default='pi', help='Matching network type')
     parser.add_argument('--list-bands', action='store_true', help='List available bands and exit')
     parser.add_argument('--list-mosfets', action='store_true', help='List available MOSFETs and exit')
@@ -1084,6 +1119,7 @@ def create_parser():
     parser.add_argument('--r', type=float, help='Specify load resistance (ohms)')
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
+    parser.add_argument("--equivalent-inductor", help="Target inductor value")
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     return parser
@@ -1103,9 +1139,24 @@ def main():
     frequency_bands = load_frequency_bands()
     mosfets = load_mosfets()
 
+    # First, clear the exclusive modes
+    # --equivalent-inductor '1uh' --band 20m
+    if args.equivalent_inductor:
+        inductors = [i * 1e-6 for i in COMPONENTS['inductors_uh']]  # Convert to Henry
+        configs = generate_inductor_configurations(args.equivalent_inductor, inductors)
+        
+        print(f"Configurations for {args.equivalent_inductor}:")
+        for i, (config, value) in enumerate(configs, 1):
+            accuracy = (1 - abs(value - parse_inductance(args.equivalent_inductor)) / parse_inductance(args.equivalent_inductor)) * 100
+            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {len(config)}")
+            print("   Configuration:", ' || '.join(' + '.join(f"{l*1e6:.3f}μH" for l in group) for group in config))
+            print()
+        sys.exit(0)
+    # --list-bands
     if args.list_bands:
         list_available_bands(frequency_bands)
         return
+    # --list-mosfets
     elif args.list_mosfets:
         list_available_mosfets(mosfets)
         return
