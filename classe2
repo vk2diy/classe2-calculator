@@ -168,7 +168,9 @@ def generate_inductor_configurations(target_value, inductors, max_components=20,
             return
 
         if abs(current_value - target_value) / target_value <= 0.01:  # 1% accuracy
-            configurations.append((current_config, current_value))
+            largest_inductor = max(max(group) for group in current_config) if current_config else 0
+            srf = estimate_srf(largest_inductor)
+            configurations.append((current_config, current_value, srf))
             return
 
         if len(configurations) >= max_configurations:
@@ -198,8 +200,8 @@ def generate_inductor_configurations(target_value, inductors, max_components=20,
 
     sorted_configs = sorted(configurations, key=lambda x: abs(x[1] - target_value) / target_value)
     filtered_configs = [
-        (config, value) for config, value in sorted_configs
-        if estimate_srf(value) >= estimate_srf(target_value)
+        config for config in sorted_configs
+        if config[2] >= estimate_srf(target_value)
     ]
 
     return filtered_configs[:max_configurations]
@@ -1155,15 +1157,13 @@ def main():
     # First, clear the exclusive modes
     # --equivalent-inductor '1uh' --band 20m
     if args.equivalent_inductor:
-        with open('components.json') as f:
-            components = json.load(f)
-        inductors = [i * 1e-6 for i in components['inductors_uh']]  # Convert to Henry
+        inductors = [i * 1e-6 for i in COMPONENTS['inductors_uh']]  # Convert to Henry
         configs = generate_inductor_configurations(args.equivalent_inductor, inductors, max_components=args.equivalent_inductor_max_components)
-        
-        print(f"Equivalent inductor series-parallel configurations for target inductance value '{args.equivalent_inductor}':")
-        for i, (config, value) in enumerate(configs, 1):
+
+        print(f"Configurations for {args.equivalent_inductor}:")
+        for i, (config, value, srf) in enumerate(configs, 1):
             accuracy = (1 - abs(value - parse_inductance(args.equivalent_inductor)) / parse_inductance(args.equivalent_inductor)) * 100
-            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}")
+            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, Estimated SRF: {format_frequency_value(srf)}")
             print("   Configuration:", ' || '.join(' + '.join(f"{l*1e6:.3f}μH" for l in group) for group in config))
             print()
         sys.exit(0)
