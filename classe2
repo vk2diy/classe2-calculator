@@ -157,25 +157,38 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value, inductors):
+def generate_inductor_configurations(target_value, inductors, max_components=20, max_configurations=10):
     target_value = parse_inductance(target_value)
     configurations = []
 
+    sorted_inductors = sorted(inductors, reverse=True)
+
     def backtrack(index, current_value, current_config, in_series=True):
+        if len(current_config) > max_components:
+            return
+
         if abs(current_value - target_value) / target_value <= 0.01:  # 1% accuracy
             configurations.append((current_config, current_value))
             return
 
-        if index >= len(inductors):
+        if len(configurations) >= max_configurations:
+            return
+
+        if index >= len(sorted_inductors):
+            return
+
+        if in_series and current_value > target_value:
+            return
+        if not in_series and current_value < target_value:
             return
 
         # Try adding in series
-        backtrack(index + 1, current_value + inductors[index], current_config + [inductors[index]], True)
+        backtrack(index, current_value + sorted_inductors[index], current_config + [[sorted_inductors[index]]], True)
 
         # Try adding in parallel
         if not in_series:
-            new_value = 1 / (1 / current_value + 1 / inductors[index])
-            backtrack(index + 1, new_value, current_config + [inductors[index]], False)
+            new_value = 1 / (1 / current_value + 1 / sorted_inductors[index])
+            backtrack(index, new_value, current_config + [[sorted_inductors[index]]], False)
 
         # Skip this inductor
         backtrack(index + 1, current_value, current_config, in_series)
@@ -183,14 +196,13 @@ def generate_inductor_configurations(target_value, inductors):
     backtrack(0, 0, [], True)
     backtrack(0, float('inf'), [], False)
 
-    # Sort configurations by accuracy and filter based on SRF
     sorted_configs = sorted(configurations, key=lambda x: abs(x[1] - target_value) / target_value)
     filtered_configs = [
         (config, value) for config, value in sorted_configs
         if estimate_srf(value) >= estimate_srf(target_value)
     ]
 
-    return filtered_configs[:10]  # Return top 10 configurations
+    return filtered_configs[:max_configurations]
 
 def generate_configurations(component_options, max_configs=100):
     configs = []
@@ -1119,7 +1131,8 @@ def create_parser():
     parser.add_argument('--r', type=float, help='Specify load resistance (ohms)')
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
-    parser.add_argument("--equivalent-inductor", help="Target inductor value")
+    parser.add_argument("--equivalent-inductor", help="Generate a series-parallel network at the target inductor value (and frequency band)")
+    parser.add_argument("--equivalent-inductor-max-components", type=int, default=20, help="Maximum number of components in a proposed configuration")
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     return parser
@@ -1142,13 +1155,15 @@ def main():
     # First, clear the exclusive modes
     # --equivalent-inductor '1uh' --band 20m
     if args.equivalent_inductor:
-        inductors = [i * 1e-6 for i in COMPONENTS['inductors_uh']]  # Convert to Henry
-        configs = generate_inductor_configurations(args.equivalent_inductor, inductors)
+        with open('components.json') as f:
+            components = json.load(f)
+        inductors = [i * 1e-6 for i in components['inductors_uh']]  # Convert to Henry
+        configs = generate_inductor_configurations(args.equivalent_inductor, inductors, max_components=args.equivalent_inductor_max_components)
         
-        print(f"Configurations for {args.equivalent_inductor}:")
+        print(f"Equivalent inductor series-parallel configurations for target inductance value '{args.equivalent_inductor}':")
         for i, (config, value) in enumerate(configs, 1):
             accuracy = (1 - abs(value - parse_inductance(args.equivalent_inductor)) / parse_inductance(args.equivalent_inductor)) * 100
-            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {len(config)}")
+            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}")
             print("   Configuration:", ' || '.join(' + '.join(f"{l*1e6:.3f}μH" for l in group) for group in config))
             print()
         sys.exit(0)
