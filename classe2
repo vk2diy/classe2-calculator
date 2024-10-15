@@ -140,7 +140,16 @@ def load_components(filename='components.json'):
 COMPONENTS = load_components()
 
 def estimate_srf(inductance):
-    return 150e6 / math.sqrt(inductance * 1e6)
+    # was return 150e6 / math.sqrt(inductance * 1e6)
+    # now updated with more legibile logic
+    if inductance < parse_inductance('1uh'):
+        return random.uniform(parse_frequency('2ghz'), parse_frequency('20ghz'))
+    elif parse_inductance('1uh') <= inductance < parse_inductance('100uh'):
+        return random.uniform(parse_frequency('200mhz'), parse_frequency('2ghz'))
+    elif parse_inductance('100uh') <= inductance < parse_inductance('1mh'):
+        return random.uniform(parse_frequency('1mhz'), parse_frequency('100mhz'))
+    else:
+        return random.uniform(parse_frequency('1khz'), parse_frequency('1mhz'))
 
 def parallel_combination(v1, v2):
     return (v1 * v2) / (v1 + v2)
@@ -470,6 +479,16 @@ def calculate_auto_q(band_data):
     desired_bandwidth = 1.2 * natural_bandwidth
     auto_q = f_center / desired_bandwidth
     return auto_q
+
+def parse_frequency(value_str):
+    if value_str is None:
+        return None
+    units = {
+        'h': 1, 'mh': 1e-3, 'uh': 1e-6, 'nh': 1e-9, 'ph': 1e-12,
+        'hz': 1, 'khz': 1e3, 'mhz': 1e6, 'ghz': 1e9
+    }
+    value, unit = re.match(r'([\d.]+)\s*([a-z]+)', value_str.lower()).groups()
+    return float(value) * units[unit]
 
 def parse_inductance(value):
     if value is None:
