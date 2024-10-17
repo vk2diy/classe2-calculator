@@ -2,6 +2,7 @@
 import argparse
 import itertools
 import json
+import commentjson
 import math
 import random
 import re
@@ -139,17 +140,108 @@ def load_components(filename='components.json'):
 
 COMPONENTS = load_components()
 
-def estimate_srf(inductance):
-    # was return 150e6 / math.sqrt(inductance * 1e6)
-    # now updated with more legibile logic
-    if inductance < parse_inductance('1uh'):
-        return random.uniform(parse_frequency('2ghz'), parse_frequency('20ghz'))
-    elif parse_inductance('1uh') <= inductance < parse_inductance('100uh'):
-        return random.uniform(parse_frequency('200mhz'), parse_frequency('2ghz'))
-    elif parse_inductance('100uh') <= inductance < parse_inductance('1mh'):
-        return random.uniform(parse_frequency('1mhz'), parse_frequency('100mhz'))
+def format_srf_range(min_srf, max_srf):
+    if min_srf >= 1000:
+        return f"{format_number_for_clarity(min_srf/1000)}-{format_number_for_clarity(max_srf/1000)}GHz"
+    elif max_srf >= 1000:
+        return f"{format_number_for_clarity(min_srf)}MHz-{format_number_for_clarity(max_srf/1000)}GHz"
     else:
-        return random.uniform(parse_frequency('1khz'), parse_frequency('1mhz'))
+        return f"{format_number_for_clarity(min_srf)}-{format_number_for_clarity(max_srf)}MHz"
+
+def load_inductor_data():
+    print("Loading inductor data...")
+    try:
+        with open('inductors.json', 'r') as f:
+            data = commentjson.load(f)
+    except Exception as e:
+        print(f"Error loading inductors.json: {e}")
+        return {}
+
+    print(f"JSON data loaded. Top-level keys: {list(data.keys())}")
+
+    inductor_srf_ranges = {}
+    for manufacturer, inductors in data.items():
+        print(f"Processing manufacturer: {manufacturer}")
+        for part_number, inductor in inductors.items():
+            print(f"  Processing part: {part_number}")
+            if isinstance(inductor, dict) and 'inductance' in inductor and 'srf_mhz' in inductor:
+                inductance_str = inductor['inductance']
+                if inductance_str.endswith('nH'):
+                    inductance = float(inductance_str[:-2]) / 1000  # Convert nH to µH
+                else:
+                    inductance = float(inductance_str)  # Assume it's already in µH
+                srf = float(inductor['srf_mhz'])
+                print(f"    Processed: Inductance = {inductance}µH, SRF = {srf}MHz")
+                if inductance not in inductor_srf_ranges:
+                    inductor_srf_ranges[inductance] = [srf, srf]  # [min, max]
+                else:
+                    inductor_srf_ranges[inductance][0] = min(inductor_srf_ranges[inductance][0], srf)
+                    inductor_srf_ranges[inductance][1] = max(inductor_srf_ranges[inductance][1], srf)
+            else:
+                print(f"    Skipping part {part_number} due to missing data or incorrect format")
+
+    print(f"Loaded SRF data for {len(inductor_srf_ranges)} inductance values:")
+    for inductance, srf_range in inductor_srf_ranges.items():
+        print(f"  {inductance}µH: {srf_range[0]}-{srf_range[1]}MHz")
+
+    return inductor_srf_ranges
+
+INDUCTOR_SRF_RANGES = load_inductor_data()
+
+def get_srf_range(inductance):
+    print(f"Searching for SRF range for inductance: {inductance}µH")
+    if not INDUCTOR_SRF_RANGES:
+        print("  No inductor data available")
+        return None, None
+
+    # Find the closest inductance value in our data
+    closest_inductance = min(INDUCTOR_SRF_RANGES.keys(), key=lambda x: abs(x - inductance))
+    print(f"  Closest match: {closest_inductance}µH")
+
+    # If the closest match is not within 10% of the target inductance, interpolate
+    if abs(closest_inductance - inductance) / inductance > 0.1:
+        lower_ind = max([x for x in INDUCTOR_SRF_RANGES.keys() if x < inductance], default=None)
+        upper_ind = min([x for x in INDUCTOR_SRF_RANGES.keys() if x > inductance], default=None)
+
+        if lower_ind is not None and upper_ind is not None:
+            lower_srf = INDUCTOR_SRF_RANGES[lower_ind]
+            upper_srf = INDUCTOR_SRF_RANGES[upper_ind]
+
+            # Linear interpolation
+            factor = (inductance - lower_ind) / (upper_ind - lower_ind)
+            min_srf = lower_srf[0] + factor * (upper_srf[0] - lower_srf[0])
+            max_srf = lower_srf[1] + factor * (upper_srf[1] - lower_srf[1])
+
+            print(f"  Interpolated SRF range: {min_srf:.1f}-{max_srf:.1f}MHz")
+            return min_srf, max_srf
+        else:
+            print(f"  Warning: Using closest match {closest_inductance}µH as an approximation")
+
+    return INDUCTOR_SRF_RANGES[closest_inductance]
+
+def estimate_srf(inductance):
+    # Constants for the SRF estimation formula
+    k = 20e9  # 20 GHz for 1nH
+    n = 0.45  # Adjusted exponent for better distribution
+
+    # Calculate SRF using a power law relationship
+    srf = k * (inductance ** -n)
+
+    # Limit the maximum SRF to 20 GHz and minimum to 10 MHz
+    return max(min(srf, 20e9), 10e6)
+
+# older form, found to generate significantly disjoint results
+#def estimate_srf(inductance):
+#    # was return 150e6 / math.sqrt(inductance * 1e6)
+#    # now updated with more legibile logic
+#    if inductance < parse_inductance('1uh'):
+#        return random.uniform(parse_frequency('2ghz'), parse_frequency('20ghz'))
+#    elif parse_inductance('1uh') <= inductance < parse_inductance('100uh'):
+#        return random.uniform(parse_frequency('200mhz'), parse_frequency('2ghz'))
+#    elif parse_inductance('100uh') <= inductance < parse_inductance('1mh'):
+#        return random.uniform(parse_frequency('1mhz'), parse_frequency('100mhz'))
+#    else:
+#        return random.uniform(parse_frequency('1khz'), parse_frequency('1mhz'))
 
 def parallel_combination(v1, v2):
     return (v1 * v2) / (v1 + v2)
@@ -157,9 +249,15 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value, inductors, max_components=20, max_configurations=10):
+def generate_inductor_configurations(target_value, inductors, frequency_bands, max_components=20, max_configurations=10, bands=None):
     target_value = parse_inductance(target_value)
     configurations = []
+
+    if not bands:
+        raise ValueError("No bands specified")
+
+    # Use the lowest start frequency among the specified bands as the operating frequency
+    operating_frequency = min(frequency_bands[band]['start'] for band in bands if band in frequency_bands) * 1e6  # Convert MHz to Hz
 
     sorted_inductors = sorted(inductors, reverse=True)
 
@@ -170,7 +268,8 @@ def generate_inductor_configurations(target_value, inductors, max_components=20,
         if abs(current_value - target_value) / target_value <= 0.01:  # 1% accuracy
             largest_inductor = max(max(group) for group in current_config) if current_config else 0
             srf = estimate_srf(largest_inductor)
-            configurations.append((current_config, current_value, srf))
+            if srf >= 3 * operating_frequency:
+                configurations.append((current_config, current_value, srf))
             return
 
         if len(configurations) >= max_configurations:
@@ -199,12 +298,8 @@ def generate_inductor_configurations(target_value, inductors, max_components=20,
     backtrack(0, float('inf'), [], False)
 
     sorted_configs = sorted(configurations, key=lambda x: abs(x[1] - target_value) / target_value)
-    filtered_configs = [
-        config for config in sorted_configs
-        if config[2] >= estimate_srf(target_value)
-    ]
 
-    return filtered_configs[:max_configurations]
+    return sorted_configs[:max_configurations]
 
 def generate_configurations(component_options, max_configs=100):
     configs = []
@@ -572,23 +667,39 @@ def calculate_center_frequency_and_bandwidth(band_data):
     bandwidth = band_data['end'] - band_data['start']
     return center_freq * 1e6, bandwidth * 1e6  # Convert to Hz
 
-def format_number_for_clarity(value_str):
+def format_number_for_clarity(value):
+    # Convert the input to a string if it's not already
+    value_str = str(value)
+
+    # Use regex to separate the number and unit (if any)
     match = re.match(r'^(-?\d*\.?\d+)\s*(.*)$', value_str)
+
     if match:
-        numeric_part, suffix = match.groups()
+        number, unit = match.groups()
+
+        # Convert the number to a float for processing
+        number = float(number)
+
+        # Format the number
+        if number.is_integer():
+            formatted_number = f"{number:.0f}"
+        elif abs(number) < 0.1:
+            formatted_number = f"{number:.3f}"
+        elif abs(number) < 1:
+            formatted_number = f"{number:.2f}"
+        elif abs(number) < 10:
+            formatted_number = f"{number:.1f}"
+        else:
+            formatted_number = f"{number:.0f}"
+
+        # Remove trailing zeros after the decimal point
+        formatted_number = formatted_number.rstrip('0').rstrip('.')
+
+        # Combine the formatted number with the unit (if any)
+        return f"{formatted_number}{unit}"
     else:
+        # If the input doesn't match the expected format, return it unchanged
         return value_str
-
-    # Remove trailing zeros after the decimal point for the numeric part
-    if '.' in numeric_part:
-        numeric_part = numeric_part.rstrip('0').rstrip('.')
-
-    # If the result is just "0.", change it to "0"
-    if numeric_part == "0.":
-        numeric_part = "0"
-
-    # Rejoin the numeric part with the suffix
-    return numeric_part + suffix
 
 def format_inductance_value(value):
     if value >= 1:
@@ -1144,6 +1255,27 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
+def test_estimate_srf():
+    inductors = [
+        0.001, 0.0015, 0.0022, 0.0033, 0.0047, 0.0068, 0.0082,
+        0.01, 0.012, 0.015, 0.018, 0.022, 0.027, 0.033, 0.039, 0.047, 0.056, 0.068, 0.082,
+        0.1, 0.12, 0.15, 0.18, 0.22, 0.27, 0.33, 0.39, 0.47, 0.56, 0.68, 0.82,
+        1, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2,
+        10, 12, 15, 18, 22, 27, 33, 39, 47, 56, 68, 82, 100,
+        120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820, 1000
+    ]
+
+    print("Testing revised estimate_srf() function:")
+    print("Inductance | Estimated SRF")
+    print("-----------|--------------")
+
+    for inductance in inductors:
+        srf = estimate_srf(inductance * 1e-6)  # Convert µH to H
+        print(f"{inductance:9.3f}µH | {format_frequency_value(srf)}")
+
+# Call the test function
+test_estimate_srf()
+
 def main():
     global debug_enabled
     args = parse_arguments()
@@ -1155,16 +1287,33 @@ def main():
     mosfets = load_mosfets()
 
     # First, clear the exclusive modes
-    # --equivalent-inductor '1uh' --band 20m
+    # --equivalent-inductor '1uh' --bands 20m
     if args.equivalent_inductor:
         inductors = [i * 1e-6 for i in COMPONENTS['inductors_uh']]  # Convert to Henry
-        configs = generate_inductor_configurations(args.equivalent_inductor, inductors, max_components=args.equivalent_inductor_max_components)
-
-        print(f"Configurations for {args.equivalent_inductor}:")
+        configs = generate_inductor_configurations(
+            args.equivalent_inductor,
+            inductors, 
+            frequency_bands, 
+            max_components=args.equivalent_inductor_max_components,
+            bands=args.bands
+        )
+        print(f"Configurations for {args.equivalent_inductor} on bands {', '.join(args.bands)}:")
         for i, (config, value, srf) in enumerate(configs, 1):
             accuracy = (1 - abs(value - parse_inductance(args.equivalent_inductor)) / parse_inductance(args.equivalent_inductor)) * 100
             print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, Estimated SRF: {format_frequency_value(srf)}")
-            print("   Configuration:", ' || '.join(' + '.join(f"{l*1e6:.3f}μH" for l in group) for group in config))
+            
+            config_strings = []
+            for group in config:
+                group_strings = []
+                for l in group:
+
+                    l_uh = l * 1e6  # Convert Henry to µH
+                    min_srf, max_srf = get_srf_range(l_uh)
+                    srf_string = format_srf_range(min_srf, max_srf)
+                    group_strings.append(f"{format_inductance_value(l)} (SRF {srf_string})")
+                    config_strings.append(' + '.join(group_strings))
+
+            print("   Configuration:", ' || '.join(config_strings))
             print()
         sys.exit(0)
     # --list-bands
