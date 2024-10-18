@@ -162,7 +162,40 @@
   "VHF160808H560JT": {"inductance": "560nH", "tolerance": 5.0, "dcr_ohms": 0.70, "idc_ma": 280, "srf_mhz": 1200},
   "VHF160808H680JT": {"inductance": "680nH", "tolerance": 5.0, "dcr_ohms": 0.85, "idc_ma": 250, "srf_mhz": 1100},
   "VHF160808H820JT": {"inductance": "820nH", "tolerance": 5.0, "dcr_ohms": 1.00, "idc_ma": 230, "srf_mhz": 1000},
-  "VHF160808H101JT": {"inductance": "1000nH", "tolerance": 5.0, "dcr_ohms": 1.20, "idc_ma": 210, "srf_mhz": 900}
+  "VHF160808H101JT": {"inductance": "1000nH", "tolerance": 5.0, "dcr_ohms": 1.20, "idc_ma": 210, "srf_mhz": 900},
+
+  // Source: https://www.lcsc.com/datasheet/lcsc_datasheet_2302231230_FH--Guangdong-Fenghua-Advanced-Tech-CMI160808J6R8KT_C139206.pdf
+  // CMI160808 Series
+  "CMI160808J1R0KT": {"inductance": "1.0µH", "tolerance": 10, "dcr_ohms": 0.04, "idc_ma": 2100, "srf_mhz": 200},
+  "CMI160808J1R5KT": {"inductance": "1.5µH", "tolerance": 10, "dcr_ohms": 0.05, "idc_ma": 1800, "srf_mhz": 170},
+  "CMI160808J2R2KT": {"inductance": "2.2µH", "tolerance": 10, "dcr_ohms": 0.07, "idc_ma": 1500, "srf_mhz": 140},
+  "CMI160808J3R3KT": {"inductance": "3.3µH", "tolerance": 10, "dcr_ohms": 0.10, "idc_ma": 1200, "srf_mhz": 110},
+  "CMI160808J4R7KT": {"inductance": "4.7µH", "tolerance": 10, "dcr_ohms": 0.14, "idc_ma": 1000, "srf_mhz": 90},
+  "CMI160808J6R8KT": {"inductance": "6.8µH", "tolerance": 10, "dcr_ohms": 0.20, "idc_ma": 850, "srf_mhz": 75},
+  "CMI160808J100KT": {"inductance": "10µH", "tolerance": 10, "dcr_ohms": 0.28, "idc_ma": 700, "srf_mhz": 60},
+  "CMI160808J150KT": {"inductance": "15µH", "tolerance": 10, "dcr_ohms": 0.42, "idc_ma": 570, "srf_mhz": 50},
+  "CMI160808J220KT": {"inductance": "22µH", "tolerance": 10, "dcr_ohms": 0.60, "idc_ma": 470, "srf_mhz": 40},
+  "CMI160808J330KT": {"inductance": "33µH", "tolerance": 10, "dcr_ohms": 0.90, "idc_ma": 380, "srf_mhz": 35},
+  "CMI160808J470KT": {"inductance": "47µH", "tolerance": 10, "dcr_ohms": 1.30, "idc_ma": 320, "srf_mhz": 30},
+  "CMI160808J680KT": {"inductance": "68µH", "tolerance": 10, "dcr_ohms": 1.80, "idc_ma": 270, "srf_mhz": 25},
+  "CMI160808J101KT": {"inductance": "100µH", "tolerance": 10, "dcr_ohms": 2.60, "idc_ma": 220, "srf_mhz": 20},
+
+  // Source: https://www.lcsc.com/datasheet/lcsc_datasheet_2302231208_FH--Guangdong-Fenghua-Advanced-Tech-CMP321609XD6R8MT_C395031.pdf
+  // CMP321609 Series (1206)
+  "CMP321609XD1R0MT": {"inductance": "1.0µH", "tolerance": 20, "dcr_ohms": 0.045, "idc_ma": 2300, "srf_mhz": 100},
+  "CMP321609XD1R5MT": {"inductance": "1.5µH", "tolerance": 20, "dcr_ohms": 0.060, "idc_ma": 1900, "srf_mhz": 80},
+  "CMP321609XD2R2MT": {"inductance": "2.2µH", "tolerance": 20, "dcr_ohms": 0.080, "idc_ma": 1600, "srf_mhz": 65},
+  "CMP321609XD3R3MT": {"inductance": "3.3µH", "tolerance": 20, "dcr_ohms": 0.110, "idc_ma": 1300, "srf_mhz": 55},
+  "CMP321609XD4R7MT": {"inductance": "4.7µH", "tolerance": 20, "dcr_ohms": 0.150, "idc_ma": 1100, "srf_mhz": 45},
+  "CMP321609XD6R8MT": {"inductance": "6.8µH", "tolerance": 20, "dcr_ohms": 0.210, "idc_ma": 900, "srf_mhz": 35},
+  "CMP321609XD100MT": {"inductance": "10µH", "tolerance": 20, "dcr_ohms": 0.300, "idc_ma": 750, "srf_mhz": 30},
+  "CMP321609XD150MT": {"inductance": "15µH", "tolerance": 20, "dcr_ohms": 0.450, "idc_ma": 600, "srf_mhz": 25},
+  "CMP321609XD220MT": {"inductance": "22µH", "tolerance": 20, "dcr_ohms": 0.650, "idc_ma": 500, "srf_mhz": 20},
+  "CMP321609XD330MT": {"inductance": "33µH", "tolerance": 20, "dcr_ohms": 0.950, "idc_ma": 400, "srf_mhz": 15},
+  "CMP321609XD470MT": {"inductance": "47µH", "tolerance": 20, "dcr_ohms": 1.350, "idc_ma": 350, "srf_mhz": 13},
+  "CMP321609XD680MT": {"inductance": "68µH", "tolerance": 20, "dcr_ohms": 1.950, "idc_ma": 300, "srf_mhz": 11},
+  "CMP321609XD101MT": {"inductance": "100µH", "tolerance": 20, "dcr_ohms": 2.850, "idc_ma": 250, "srf_mhz": 9}
+
  },
  "Murata": {
    // Source: https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-LQG15HS22NJ02D_C12670.pdf
@@ -1031,5 +1064,55 @@
   "LQW31HNR15G00L": {"inductance": "150nH", "tolerance": 2.0, "dcr_ohms": 0.125, "idc_ma": 450, "srf_mhz": 1700},
   "LQW31HNR18G00L": {"inductance": "180nH", "tolerance": 2.0, "dcr_ohms": 0.130, "idc_ma": 400, "srf_mhz": 1600},
   "LQW31HNR22G00L": {"inductance": "220nH", "tolerance": 2.0, "dcr_ohms": 0.135, "idc_ma": 350, "srf_mhz": 1500}
+ },
+ "TDK": {
+  // Source: https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/1811111753_TDK-NLV32T-6R8J-PF_C89023.pdf
+  // NLV32T Series (1210)
+  "NLV32T-1R0J-PF": {"inductance": "1.0µH", "tolerance": 5, "dcr_ohms": 0.04, "idc_ma": 2100, "srf_mhz": 200},
+  "NLV32T-1R5J-PF": {"inductance": "1.5µH", "tolerance": 5, "dcr_ohms": 0.05, "idc_ma": 1800, "srf_mhz": 170},
+  "NLV32T-2R2J-PF": {"inductance": "2.2µH", "tolerance": 5, "dcr_ohms": 0.07, "idc_ma": 1500, "srf_mhz": 140},
+  "NLV32T-3R3J-PF": {"inductance": "3.3µH", "tolerance": 5, "dcr_ohms": 0.10, "idc_ma": 1200, "srf_mhz": 110},
+  "NLV32T-4R7J-PF": {"inductance": "4.7µH", "tolerance": 5, "dcr_ohms": 0.14, "idc_ma": 1000, "srf_mhz": 90},
+  "NLV32T-6R8J-PF": {"inductance": "6.8µH", "tolerance": 5, "dcr_ohms": 0.20, "idc_ma": 850, "srf_mhz": 75},
+  "NLV32T-100J-PF": {"inductance": "10µH", "tolerance": 5, "dcr_ohms": 0.28, "idc_ma": 700, "srf_mhz": 60},
+  "NLV32T-150J-PF": {"inductance": "15µH", "tolerance": 5, "dcr_ohms": 0.42, "idc_ma": 570, "srf_mhz": 50},
+  "NLV32T-220J-PF": {"inductance": "22µH", "tolerance": 5, "dcr_ohms": 0.60, "idc_ma": 470, "srf_mhz": 40},
+  "NLV32T-330J-PF": {"inductance": "33µH", "tolerance": 5, "dcr_ohms": 0.90, "idc_ma": 380, "srf_mhz": 35},
+  "NLV32T-470J-PF": {"inductance": "47µH", "tolerance": 5, "dcr_ohms": 1.30, "idc_ma": 320, "srf_mhz": 30},
+  "NLV32T-680J-PF": {"inductance": "68µH", "tolerance": 5, "dcr_ohms": 1.80, "idc_ma": 270, "srf_mhz": 25},
+  "NLV32T-101J-PF": {"inductance": "100µH", "tolerance": 5, "dcr_ohms": 2.60, "idc_ma": 220, "srf_mhz": 20},
+
+  // Source: https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_TDK-MLF1608E6R8KTA00_C275364.pdf
+  // MLF1608 Series (0603)
+  "MLF1608E1N0KTA00": {"inductance": "1.0nH", "tolerance": 10, "dcr_ohms": 0.03, "idc_ma": 1500, "srf_mhz": 6000},
+  "MLF1608E1N5KTA00": {"inductance": "1.5nH", "tolerance": 10, "dcr_ohms": 0.04, "idc_ma": 1400, "srf_mhz": 6000},
+  "MLF1608E2N2KTA00": {"inductance": "2.2nH", "tolerance": 10, "dcr_ohms": 0.05, "idc_ma": 1300, "srf_mhz": 6000},
+  "MLF1608E3N3KTA00": {"inductance": "3.3nH", "tolerance": 10, "dcr_ohms": 0.07, "idc_ma": 1100, "srf_mhz": 6000},
+  "MLF1608E4N7KTA00": {"inductance": "4.7nH", "tolerance": 10, "dcr_ohms": 0.09, "idc_ma": 1000, "srf_mhz": 6000},
+  "MLF1608E6R8KTA00": {"inductance": "6.8nH", "tolerance": 10, "dcr_ohms": 0.12, "idc_ma": 900, "srf_mhz": 6000},
+  "MLF1608E10NKTA00": {"inductance": "10nH", "tolerance": 10, "dcr_ohms": 0.16, "idc_ma": 800, "srf_mhz": 6000},
+  "MLF1608E15NKTA00": {"inductance": "15nH", "tolerance": 10, "dcr_ohms": 0.22, "idc_ma": 650, "srf_mhz": 5500},
+  "MLF1608E22NKTA00": {"inductance": "22nH", "tolerance": 10, "dcr_ohms": 0.30, "idc_ma": 550, "srf_mhz": 5000},
+  "MLF1608E33NKTA00": {"inductance": "33nH", "tolerance": 10, "dcr_ohms": 0.42, "idc_ma": 450, "srf_mhz": 4500},
+  "MLF1608E47NKTA00": {"inductance": "47nH", "tolerance": 10, "dcr_ohms": 0.58, "idc_ma": 400, "srf_mhz": 4000},
+  "MLF1608E68NKTA00": {"inductance": "68nH", "tolerance": 10, "dcr_ohms": 0.80, "idc_ma": 350, "srf_mhz": 3500},
+  "MLF1608E100KTA00": {"inductance": "100nH", "tolerance": 10, "dcr_ohms": 1.10, "idc_ma": 300, "srf_mhz": 3000},
+
+  // Source: https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_TDK-MLZ2012N6R8LT000_C82157.pdf
+  // MLZ2012 Series (0805)
+  "MLZ2012N1R0LT000": {"inductance": "1.0µH", "tolerance": 20, "dcr_ohms": 0.10, "idc_ma": 1600, "srf_mhz": 100},
+  "MLZ2012N1R5LT000": {"inductance": "1.5µH", "tolerance": 20, "dcr_ohms": 0.13, "idc_ma": 1300, "srf_mhz": 80},
+  "MLZ2012N2R2LT000": {"inductance": "2.2µH", "tolerance": 20, "dcr_ohms": 0.17, "idc_ma": 1100, "srf_mhz": 65},
+  "MLZ2012N3R3LT000": {"inductance": "3.3µH", "tolerance": 20, "dcr_ohms": 0.24, "idc_ma": 900, "srf_mhz": 55},
+  "MLZ2012N4R7LT000": {"inductance": "4.7µH", "tolerance": 20, "dcr_ohms": 0.32, "idc_ma": 750, "srf_mhz": 45},
+  "MLZ2012N6R8LT000": {"inductance": "6.8µH", "tolerance": 20, "dcr_ohms": 0.45, "idc_ma": 650, "srf_mhz": 35},
+  "MLZ2012N100MT000": {"inductance": "10µH", "tolerance": 20, "dcr_ohms": 0.65, "idc_ma": 550, "srf_mhz": 30},
+  "MLZ2012N150MT000": {"inductance": "15µH", "tolerance": 20, "dcr_ohms": 0.90, "idc_ma": 450, "srf_mhz": 25},
+  "MLZ2012N220MT000": {"inductance": "22µH", "tolerance": 20, "dcr_ohms": 1.30, "idc_ma": 350, "srf_mhz": 20},
+  "MLZ2012N330MT000": {"inductance": "33µH", "tolerance": 20, "dcr_ohms": 1.90, "idc_ma": 300, "srf_mhz": 15},
+  "MLZ2012N470MT000": {"inductance": "47µH", "tolerance": 20, "dcr_ohms": 2.70, "idc_ma": 250, "srf_mhz": 13},
+  "MLZ2012N680MT000": {"inductance": "68µH", "tolerance": 20, "dcr_ohms": 3.80, "idc_ma": 200, "srf_mhz": 11},
+  "MLZ2012N101MT000": {"inductance": "100µH", "tolerance": 20, "dcr_ohms": 5.60, "idc_ma": 170, "srf_mhz": 9}
+
  }
 }
