@@ -118,6 +118,9 @@ def get_utc_date():
     # This format closely mimics the output of the 'date' command
     return utc_now.strftime("%a %b %d %H:%M:%S UTC %Y")
 
+def convert_mhz_to_hz(frequency_mhz):
+    return frequency_mhz * 1e6
+
 def convert_f_to_pf(value_f):
     return value_f * 1e12
 
@@ -220,9 +223,6 @@ def get_srf_range(inductance_uh):
     print(f"  INFO: Interpolated SRF for {inductance_uh:.3f}µH: {interpolated_srf:.1f}MHz")
 
     return [interpolated_srf, interpolated_srf]
-
-def round_inductance(inductance):
-    return round(inductance * 1e6, 3) / 1e6
 
 def convert_h_to_uh(inductance_h):
     return inductance_h * 1e6
@@ -505,18 +505,21 @@ def find_best_component_combination(target_value, standard_values, max_component
 
 def calculate_estimated_srf(configuration):
     min_srf = float('inf')
+    print("---------------- calculate_estimated_srf() -------------------")
     for group in configuration:
         for inductor_h in group:
-            inductor_uh = inductor_h * 1e6  # Convert H to µH
+            inductor_uh = convert_h_to_uh(inductor_h)
+            print(f"DEBUG: Processing inductor {inductor_uh:.3f}µH")
             srf_range = get_srf_range(inductor_uh)
+            print(f"DEBUG: SRF range for {inductor_uh:.3f}µH: {srf_range}")
             if srf_range and srf_range[0] is not None:
-                min_srf = min(min_srf, srf_range[0])
+                min_srf = min(min_srf, srf_range[0])  # Use the lower bound of the SRF range
+                print(f"DEBUG: Updated min_srf: {min_srf:.3f}MHz")
 
-    if min_srf == float('inf'):
-        print("Warning: Could not calculate estimated SRF. Using default value.")
-        return 2000  # Default to 2GHz if no valid SRF found
-
-    return min_srf * 0.95  # Apply 5% safety factor
+    estimated_srf_mhz = min_srf * 0.95  # Apply 5% safety factor
+    print(f"Final estimated SRF: {estimated_srf_mhz:.3f}MHz")
+    print("---------------- end calculate_estimated_srf() ----------------")
+    return estimated_srf_mhz
 
 def calculate_error_percentage(ideal, actual):
     error = abs(ideal - actual) / ideal * 100
@@ -761,6 +764,7 @@ def format_resistance_value(value):
         return format_number_for_clarity(f"{value:.3f}Ω")
 
 def format_frequency_value(value):
+    print(f"DEBUG: Formatting frequency value: {value}")
     if value >= 1e9:
         return format_number_for_clarity(f"{value/1e9:.3f}GHz")
     elif value >= 1e6:
@@ -1331,28 +1335,31 @@ def main():
             max_components=args.equivalent_inductor_max_components,
             bands=args.bands
         )
-        print(f"DEBUG: Generated {len(configs)} configurations")
         print(f"Configurations for {args.equivalent_inductor} on bands {', '.join(args.bands)}:")
 
         for i, (config, value, srf) in enumerate(configs, 1):
-            print(f"\nDEBUG: Processing configuration {i}")
             print(f"DEBUG: Config: {config}, Value: {value}, SRF: {srf}")
             accuracy = (1 - abs(value - parse_inductance(args.equivalent_inductor)) / parse_inductance(args.equivalent_inductor)) * 100
+
             estimated_srf = calculate_estimated_srf(config)
-            print(f"DEBUG: Calculated accuracy: {accuracy:.2f}%, Estimated SRF: {estimated_srf}")
-            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, Estimated SRF: {format_frequency_value(estimated_srf)}")
-        
+            print(f"DEBUG: Calculated estimated SRF: {estimated_srf:.3f}MHz")
+            estimated_srf_hz = convert_mhz_to_hz(estimated_srf)
+            print(f"DEBUG: Estimated SRF in Hz: {estimated_srf_hz:.1f}Hz")
+            formatted_srf = format_frequency_value(estimated_srf_hz)
+            print(f"DEBUG: Formatted estimated SRF: {formatted_srf}")
+            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, Estimated SRF: {estimated_srf:.3f}MHz, Formatted SRF: {formatted_srf}")
+
             print("DEBUG: Generating configuration string")
             config_strings = []
             for group in config:
                 group_strings = []
                 for inductor_h in group:
-                    print(f"DEBUG: Processing inductor {inductor_h}")
-                    inductor_uh = inductor_h * 1e6  # Convert H to µH
-                    min_srf, max_srf = get_srf_range(inductor_uh)
-                    print(f"DEBUG: SRF range for {inductor_uh:.3f}µH: {min_srf}-{max_srf}MHz")
-                    srf_string = format_srf_range(min_srf, max_srf)
-                    group_strings.append(f"{format_inductance_value(inductor_h)} (SRF {srf_string})")
+                    inductor_uh = convert_h_to_uh(inductor_h)
+                    print(f"DEBUG: Processing inductor {inductor_h}H as {inductor_uh}uH")
+                    min_srf_mhz, max_srf_mhz = get_srf_range(inductor_uh)
+                    print(f"DEBUG: SRF range for {inductor_uh:.3f}µH: {min_srf_mhz}-{max_srf_mhz}MHz")
+                    srf_string = format_srf_range(min_srf_mhz, max_srf_mhz)
+                    group_strings.append(f"{format_inductance_value(inductor_h)}H (SRF {srf_string})")
                 config_strings.append(' + '.join(group_strings))
         
             print("   Configuration:", ' || '.join(config_strings))
