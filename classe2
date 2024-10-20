@@ -1339,7 +1339,7 @@ def main():
             inductors,
             FREQUENCY_BANDS,
             max_components=args.equivalent_inductor_max_components,
-            max_configurations=20,
+            max_configurations=10,
             bands=args.bands
         )
 
