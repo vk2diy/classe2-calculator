@@ -156,13 +156,13 @@ def load_components(filename='components.json'):
 
 COMPONENTS = load_components()
 
-def format_srf_range(min_srf, max_srf):
-    if min_srf >= 1000:
-        return f"{format_number_for_clarity(min_srf/1000)}-{format_number_for_clarity(max_srf/1000)}GHz"
-    elif max_srf >= 1000:
-        return f"{format_number_for_clarity(min_srf)}MHz-{format_number_for_clarity(max_srf/1000)}GHz"
+def format_frequency_range(min_frequency_mhz, max_frequency_mhz):
+    if min_frequency_mhz >= 1000:
+        return f"{format_number_for_clarity(min_frequency_mhz/1000)}-{format_number_for_clarity(max_frequency_mhz/1000)}GHz"
+    elif max_frequency_mhz >= 1000:
+        return f"{format_number_for_clarity(min_frequency_mhz)}MHz-{format_number_for_clarity(max_frequency_mhz/1000)}GHz"
     else:
-        return f"{format_number_for_clarity(min_srf)}-{format_number_for_clarity(max_srf)}MHz"
+        return f"{format_number_for_clarity(min_frequency_mhz)}-{format_number_for_clarity(max_frequency_mhz)}MHz"
 
 def convert_to_uh(value_str):
     if value_str.endswith('nH'):
