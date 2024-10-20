@@ -1365,11 +1365,11 @@ def main():
                 group_strings = []
                 for inductor_h in group:
                     inductor_uh = convert_h_to_uh(inductor_h)
-                    debug_print(f"Processing inductor {inductor_h}H as {inductor_uh}uH")
+                    debug_print(f"Processing inductor {inductor_h} as {inductor_uh}uH")
                     min_srf_mhz, max_srf_mhz = get_srf_range(inductor_uh)
                     debug_print(f"SRF range for {inductor_uh:.3f}µH: {min_srf_mhz}-{max_srf_mhz}MHz")
                     srf_string = format_frequency_value(convert_mhz_to_hz(min_srf_mhz)) #, max_srf_mhz)
-                    group_strings.append(f"{format_inductance_value(inductor_h)}H (SRF {srf_string})")
+                    group_strings.append(f"{format_inductance_value(inductor_h)} (SRF {srf_string})")
                 config_strings.append(' + '.join(group_strings))
         
             print("   Configuration:", ' || '.join(config_strings))
