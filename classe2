@@ -317,8 +317,10 @@ def generate_inductor_configurations(target_value, inductors, frequency_bands, m
 
     # Sort by part count (ascending) then by accuracy (descending)
     def sort_key(config):
-        parts = len(config[0])  # Number of inductors in the configuration
-        accuracy = 100 - abs(config[1] - 7.755e-6) / 7.755e-6 * 100  # Calculate accuracy percentage
+        inductors = config[0]
+        parts = len(inductors) # Number of inductors in the configuration
+        total_inductance = sum(ind[0] for ind in inductors)
+        accuracy = 100 - abs(total_inductance - 3.4e-6) / 3.4e-6 * 100  # Calculate accuracy percentage
         return (parts, -accuracy)  # Negative accuracy for descending order
     sorted_configs = sorted(configurations, key=sort_key) 
 
