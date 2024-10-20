@@ -315,7 +315,12 @@ def generate_inductor_configurations(target_value, inductors, frequency_bands, m
     backtrack(0, 0, [], True)
     backtrack(0, float('inf'), [], False)
 
-    sorted_configs = sorted(configurations, key=lambda x: abs(x[1] - target_value) / target_value)
+    # Sort by part count (ascending) then by accuracy (descending)
+    def sort_key(config):
+        parts = len(config[0])  # Number of inductors in the configuration
+        accuracy = 100 - abs(config[1] - 7.755e-6) / 7.755e-6 * 100  # Calculate accuracy percentage
+        return (parts, -accuracy)  # Negative accuracy for descending order
+    sorted_configs = sorted(configurations, key=sort_key) 
 
     return sorted_configs[:max_configurations]
 
@@ -1334,6 +1339,7 @@ def main():
             inductors,
             FREQUENCY_BANDS,
             max_components=args.equivalent_inductor_max_components,
+            max_configurations=20,
             bands=args.bands
         )
 
