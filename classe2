@@ -513,6 +513,7 @@ def find_best_component_combination(target_value, standard_values, max_component
 
 def calculate_estimated_srf(configuration):
     min_srf = float('inf')
+    total_inductors = sum(len(group) for group in configuration)
     debug_print("---------------- calculate_estimated_srf() -------------------")
     for group in configuration:
         for inductor_h in group:
@@ -523,7 +524,12 @@ def calculate_estimated_srf(configuration):
                 min_srf = min(min_srf, srf_range[0])  # Use the lower bound of the SRF range
                 debug_print(f"Updated min_srf = {min_srf:.3f}MHz")
 
-    estimated_srf_mhz = min_srf * 0.95  # Apply 5% safety factor
+    if total_inductors == 1:
+        estimated_srf_mhz = min_srf  # No reduction for single inductor
+        debug_print(f"Single inductor configuration, no reduction applied")
+    else:
+        estimated_srf_mhz = min_srf * 0.95  # Apply 5% safety factor for parallel configurations
+        debug_print(f"Multiple inductor configuration, 5% reduction applied")
     debug_print(f"Final estimated SRF: {estimated_srf_mhz:.3f}MHz")
     debug_print("---------------- end calculate_estimated_srf() ----------------")
     return estimated_srf_mhz
@@ -1359,7 +1365,10 @@ def main():
             debug_print(f"Estimated SRF in Hz: {estimated_srf_hz:.1f}Hz")
             formatted_srf = format_frequency_value(estimated_srf_hz)
             debug_print(f"Formatted estimated SRF: {formatted_srf}")
-            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, SRF: ~{formatted_srf}")
+            # If there's an approximate reduction due to a parallel configuration, prepend "~"
+            if(sum(len(group) for group in config)) > 1:
+                    formatted_srf = f"~{formatted_srf}"
+            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, SRF: {formatted_srf}")
 
             debug_print("Generating configuration string")
             config_strings = []
