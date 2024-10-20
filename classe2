@@ -1388,7 +1388,7 @@ def main():
     if not all([args.power, args.voltage, args.bands, args.mosfet]):
         parser.error("The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
 
-    if args.mosfet not in mosfets:
+    if args.mosfet not in MOSFETS:
         print(f"Error: MOSFET '{args.mosfet}' not found")
         return
 
@@ -1410,8 +1410,8 @@ def main():
     generator = ClassETopologyGenerator()
 
     for band_id in band_ids:
-        if band_id not in frequency_bands:
-            print(f"Warning: Band '{band_id}' not found in frequency_bands.json. Skipping.")
+        if band_id not in FREQUENCY_BANDS:
+            print(f"Warning: Band '{band_id}' not found in known frequency bands. Skipping.")
             continue
 
         band_data = FREQUENCY_BANDS[band_id]
