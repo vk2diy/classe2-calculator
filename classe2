@@ -158,11 +158,19 @@ COMPONENTS = load_components()
 
 def format_frequency_range(min_frequency_mhz, max_frequency_mhz):
     if min_frequency_mhz >= 1000:
-        return f"{format_number_for_clarity(min_frequency_mhz/1000)}-{format_number_for_clarity(max_frequency_mhz/1000)}GHz"
+        return f"{format_number_for_clarity(min_frequency_mhz/1000,True)}-{format_number_for_clarity(max_frequency_mhz/1000,True)}GHz"
     elif max_frequency_mhz >= 1000:
-        return f"{format_number_for_clarity(min_frequency_mhz)}MHz-{format_number_for_clarity(max_frequency_mhz/1000)}GHz"
+        return f"{format_number_for_clarity(min_frequency_mhz,True)}MHz-{format_number_for_clarity(max_frequency_mhz/1000,True)}GHz"
     else:
-        return f"{format_number_for_clarity(min_frequency_mhz)}-{format_number_for_clarity(max_frequency_mhz)}MHz"
+        return f"{format_number_for_clarity(min_frequency_mhz,True)}-{format_number_for_clarity(max_frequency_mhz,True)}MHz"
+
+def get_max_frequency(bands):
+    return max(FREQUENCY_BANDS[band]['end'] for band in bands)
+
+def format_band_with_range(band):
+    band_data = FREQUENCY_BANDS[band]
+    formatted_range = format_frequency_range(band_data['start'], band_data['end'])
+    return f"{band} ({formatted_range})"
 
 def convert_to_uh(value_str):
     if value_str.endswith('nH'):
@@ -686,14 +694,15 @@ def load_frequency_bands(filename='frequency_bands.json'):
         return json.load(f)
 
 # Get the list of available bands
-AVAILABLE_BANDS = list(load_frequency_bands().keys())
+FREQUENCY_BANDS = load_frequency_bands()
+AVAILABLE_BANDS = list(FREQUENCY_BANDS.keys())
 
 def calculate_center_frequency_and_bandwidth(band_data):
     center_freq = (band_data['start'] + band_data['end']) / 2
     bandwidth = band_data['end'] - band_data['start']
     return center_freq * 1e6, bandwidth * 1e6  # Convert to Hz
 
-def format_number_for_clarity(value):
+def format_number_for_clarity(value,preserve_decimals=False):
     # Convert the input to a string if it's not already
     value_str = str(value)
 
@@ -707,21 +716,25 @@ def format_number_for_clarity(value):
         number = float(number)
 
         # Format the number
-        if number.is_integer():
-            formatted_number = f"{number:.0f}"
-        elif abs(number) < 0.1:
-            formatted_number = f"{number:.3f}"
-        elif abs(number) < 1:
-            formatted_number = f"{number:.2f}"
-        elif abs(number) < 10:
-            formatted_number = f"{number:.1f}"
+        if not preserve_decimals:
+            if number.is_integer():
+                formatted_number = f"{number:.0f}"
+            elif abs(number) < 0.1:
+                formatted_number = f"{number:.3f}"
+            elif abs(number) < 1:
+                formatted_number = f"{number:.2f}"
+            elif abs(number) < 10:
+                formatted_number = f"{number:.1f}"
+            else:
+                formatted_number = f"{number:.0f}"
         else:
-            formatted_number = f"{number:.0f}"
+            formatted_number = number
 
-        # Remove trailing zeros after the decimal point
-        formatted_number = formatted_number.rstrip('0').rstrip('.')
+        # Remove non-significant trailing zeroes
+        formatted_number = '{0:g}'.format(float(formatted_number))
 
         # Combine the formatted number with the unit (if any)
+        debug_print(f"format_number_for_clarity() passed '{value}' returning '{formatted_number}' (preserve_decimals={preserve_decimals})")
         return f"{formatted_number}{unit}"
     else:
         # If the input doesn't match the expected format, return it unchanged
@@ -829,8 +842,8 @@ def load_mosfets(filename='mosfets.json'):
     with open(filename, 'r') as f:
         return json.load(f)
 
-# Get the list of available MOSFETs
-AVAILABLE_MOSFETS = list(load_mosfets().keys())
+MOSFETS = load_mosfets()
+AVAILABLE_MOSFETS = list(MOSFETS.keys())
 
 def list_available_mosfets(mosfets):
     print("Available MOSFETs:")
@@ -1309,9 +1322,6 @@ def main():
 
     matching_network_type = args.matching.lower() if args.matching else 'pi'
 
-    frequency_bands = load_frequency_bands()
-    mosfets = load_mosfets()
-
     # First, clear the exclusive modes
     # --equivalent-inductor '1uh' --bands 20m
     if args.equivalent_inductor:
@@ -1322,11 +1332,14 @@ def main():
         configs = generate_inductor_configurations(
             args.equivalent_inductor,
             inductors,
-            frequency_bands,
+            FREQUENCY_BANDS,
             max_components=args.equivalent_inductor_max_components,
             bands=args.bands
         )
-        print(f"Configurations for {args.equivalent_inductor} on bands {', '.join(args.bands)}:")
+
+        max_freq = get_max_frequency(args.bands)
+        formatted_bands = ', '.join(format_band_with_range(band) for band in args.bands)
+        print(f"Configurations for {args.equivalent_inductor} on bands {formatted_bands} with maximum operating frequency {max_freq:.2f}MHz:")
 
         for i, (config, value, srf) in enumerate(configs, 1):
             debug_print(f"Config: {config}, Value: {value}, SRF: {srf}")
@@ -1358,11 +1371,11 @@ def main():
         sys.exit(0)
     # --list-bands
     if args.list_bands:
-        list_available_bands(frequency_bands)
+        list_available_bands(FREQUENCY_BANDS)
         return
     # --list-mosfets
     elif args.list_mosfets:
-        list_available_mosfets(mosfets)
+        list_available_mosfets(MOSFETS)
         return
 
     # Check for required arguments for main operation
@@ -1370,10 +1383,10 @@ def main():
         parser.error("The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
 
     if args.mosfet not in mosfets:
-        print(f"Error: MOSFET '{args.mosfet}' not found in mosfets.json")
+        print(f"Error: MOSFET '{args.mosfet}' not found")
         return
 
-    mosfet_data = mosfets[args.mosfet]
+    mosfet_data = MOSFETS[args.mosfet]
     mosfet_info = f"{args.mosfet} (Vdss={mosfet_data['vdss_v']}V, Id={mosfet_data['id_a']}A, Rds_on={mosfet_data['rds_on_o']}Ω, Ciss={mosfet_data['ciss_pf']}pF, Coss={mosfet_data['coss_pf']}pF, Crss={mosfet_data['crss_pf']}pF, Vgs_th={mosfet_data['vgs_th_v']}V)"
 
     print( "Command line:", " ".join(sys.argv))
@@ -1395,7 +1408,7 @@ def main():
             print(f"Warning: Band '{band_id}' not found in frequency_bands.json. Skipping.")
             continue
 
-        band_data = frequency_bands[band_id]
+        band_data = FREQUENCY_BANDS[band_id]
         center_freq, bandwidth = calculate_center_frequency_and_bandwidth(band_data)
 
         if args.q_factor is None:
