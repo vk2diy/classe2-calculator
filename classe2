@@ -1609,12 +1609,30 @@ def main():
             for i, (config, value, _) in enumerate(configs, 1):
                 accuracy = 100 * (1 - abs(value - target_value) / target_value)
                 parts = sum(len(group) for group in config)
-                srf, dcr, idc = get_inductor_properties(value)
-                if srf is not None:
-                    print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, Topology: {generate_configuration_string(config)}")
-                else:
-                    print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, No matching inductor found")
         
+                # Calculate total SRF, DCR, and IDC for the configuration
+                total_srf = float('inf')
+                total_dcr = 0
+                total_idc = float('inf')
+                for group in config:
+                    group_srf = float('inf')
+                    group_dcr = 0
+                    group_idc = float('inf')
+                    for inductor in group:
+                        ind_value_h = parse_inductance(inductor)
+                        srf, dcr, idc = get_inductor_properties(ind_value_h)
+                        if srf is not None:
+                            group_srf = min(group_srf, srf)
+                            group_dcr += dcr
+                            group_idc = min(group_idc, idc)
+                    total_srf = min(total_srf, group_srf)
+                    total_dcr += group_dcr
+                    total_idc = min(total_idc, group_idc)
+        
+                print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, SRF: {format_frequency_value(total_srf*1e6)}, DCR: {format_resistance_value(total_dcr)}, IDC: {format_current_value(total_idc*1e-3)}")
+        
+                config_str = generate_configuration_string(config)
+                print(f"   Configuration: {config_str}")
                 print()
         else:
             print("No valid configurations found.")
