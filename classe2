@@ -195,7 +195,16 @@ def load_inductor_data():
     with open('inductors.json', 'r') as f:
         return commentjson.load(f)
 
+def preprocess_inductors(inductors_data):
+    preprocessed_data = []
+    for manufacturer, models in inductors_data.items():
+        for model, data in models.items():
+            inductance_uh = convert_to_uh(data['inductance'])
+            preprocessed_data.append((model, inductance_uh))
+    return preprocessed_data
+
 INDUCTORS = load_inductor_data()
+PREPROCESSED_INDUCTORS = preprocess_inductors(INDUCTORS)
 
 def load_inductor_srf_range_data():
     data = INDUCTORS
@@ -262,42 +271,6 @@ def get_srf_range(inductance_uh):
 
     return [interpolated_srf, interpolated_srf]
 
-def get_inductor_properties(inductance_h):
-    inductance_uh = convert_h_to_uh(inductance_h)
-    debug_print(f"get_inductor_properties()")
-    debug_print(f" inductance_h = {inductance_h}")
-    debug_print(f" inductance_uh = {inductance_uh}")
-
-    best_match = None
-    min_difference = float('inf')
-
-    for manufacturer, models in INDUCTORS.items():
-        debug_print(f" Checking manufacturer: {manufacturer}")
-        for model, data in models.items():
-            debug_print(f"  Checking model: {model}")
-            debug_print(f"   Data: {data}")
-            try:
-                model_inductance_uh = convert_to_uh(data['inductance'])
-                debug_print(f"   Parsed inductance: {model_inductance_uh} uH")
-            except Exception as e:
-                debug_print(f"   Error parsing inductance: {e}")
-                debug_print(f"   Raw inductance value: {data['inductance']}")
-                continue
-
-            difference = abs(model_inductance_uh - inductance_uh)
-            if difference < min_difference:
-                min_difference = difference
-                best_match = (manufacturer, model, data)
-
-    if best_match:
-        manufacturer, model, data = best_match
-        debug_print(f" Best match: {manufacturer} {model}")
-        debug_print(f" Data: {data}")
-        return data['srf_mhz'], data['dcr_ohms'], data['idc_ma']
-    else:
-        debug_print(f" No matching inductor found for {inductance_uh} µH")
-        return None, None, None
-
 def estimate_srf(inductance, optimistic=True):
     inductance_nh = inductance * 1e9
     keys = list(INDUCTOR_SRF_RANGES.keys())
@@ -321,7 +294,7 @@ def estimate_srf(inductance, optimistic=True):
     debug_print(f"Estimated SRF for {format_inductance_value(inductance)}: {format_frequency_value(srf*1e6)}")
     return srf
 
-def calculate_srf_safety_factor(inductance):
+def calculate_inductor_configuration_srf_safety_factor(inductance):
     if inductance < 1e-8:  # Less than 10nH
         return 2.5
     elif inductance < 1e-7:  # Less than 100nH
@@ -337,199 +310,103 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value, inductors, frequency_bands, max_components=4, max_configurations=10, bands=None):
-    def get_accurate_srf(inductance):
-        debug_print(f"get_accurate_srf()")
-        debug_print(f" inductance = {inductance}")
-
-        inductance_uh = inductance * 1e6  # Convert to µH
-        debug_print(f" inductance_uh = {inductance_uh}")
-
-        # Debug: print the keys of INDUCTOR_SRF_RANGES
-        debug_print(f" INDUCTOR_SRF_RANGES keys: {list(INDUCTOR_SRF_RANGES.keys())}")
-
-        keys = sorted(INDUCTOR_SRF_RANGES.keys())
-        idx = bisect.bisect_left(keys, inductance_uh)
-
-        if idx == 0:
-            srf_range = INDUCTOR_SRF_RANGES[keys[0]]
-        elif idx == len(keys):
-            srf_range = INDUCTOR_SRF_RANGES[keys[-1]]
-        else:
-            lower_key, upper_key = keys[idx-1], keys[idx]
-            lower_range = INDUCTOR_SRF_RANGES[lower_key]
-            upper_range = INDUCTOR_SRF_RANGES[upper_key]
-
-            # Linear interpolation
-            lower_srf = sum(lower_range) / len(lower_range)
-            upper_srf = sum(upper_range) / len(upper_range)
-            srf = lower_srf + (upper_srf - lower_srf) * (inductance_uh - lower_key) / (upper_key - lower_key)
-            debug_print(f" Interpolated SRF for {inductance_uh} µH: {srf} MHz")
-            return srf
-
-        debug_print(f" SRF range for {inductance_uh} µH: {srf_range}")
-        return sum(srf_range) / len(srf_range)  # Return average of the range
-
-    target_value = parse_inductance(target_value)
-
-    if bands is None:
-        bands = list(frequency_bands.keys())
-
-    max_operating_frequency = max(frequency_bands[band]['end'] for band in bands)
-
-    debug_print(f"Searching for configurations for {format_inductance_value(target_value)} (max operating frequency: {format_frequency_value(max_operating_frequency*1e6)})")
-
-    # Filter inductors based on SRF
-    valid_inductors = []
-    for ind in inductors:
-        ind_value = parse_inductance(ind)
-        ind_srf = get_accurate_srf(ind_value)  # Use get_accurate_srf instead of estimate_srf
-        safety_factor = calculate_srf_safety_factor(ind_value)
-        required_srf = safety_factor * max_operating_frequency
-        if ind_srf >= required_srf:
-            valid_inductors.append(ind)
-        debug_print(f"Inductor {format_inductance_value(ind_value)} - SRF: {format_frequency_value(ind_srf*1e6)}, Required: {format_frequency_value(required_srf*1e6)}, {'Accepted' if ind_srf >= required_srf else 'Rejected'}")
-
-    sorted_inductors = sorted(valid_inductors, key=lambda x: parse_inductance(x), reverse=True)
-    
-    debug_print(f"Number of valid inductors after SRF screening: {len(valid_inductors)}")
-
+def generate_inductor_configurations(target_value, inductors, frequency_bands, max_components=4, max_configurations=30, bands=None):
+    debug_print(f"generate_inductor_configurations: target={target_value}, max_components={max_components}, max_configurations={max_configurations}")
     configurations = []
 
-    def error_percentage(value):
-        return abs(value - target_value) / target_value * 100
+    # PREPROCESSED_INDUCTORS is already in the correct format, no need to process it further
+    preprocessed_inductors = PREPROCESSED_INDUCTORS
 
-    def find_combination(target, available_inductors, current_config=None, depth=0):
-        if current_config is None:
-            current_config = []
-        
-        if depth >= max_components:
-            return None, None
+    debug_print("Generating single-part configurations")
+    single_part_configs = generate_single_part_configs(target_value, preprocessed_inductors, frequency_bands, bands)
+    configurations.extend(single_part_configs)
+    debug_print(f"Single-part configurations: {len(single_part_configs)}")
 
-        debug_print(f"Searching for combination at depth {depth}, target: {format_inductance_value(target)}")
+    for num_parts in range(2, max_components + 1):
+        debug_print(f"Generating {num_parts}-part configurations")
+        multi_part_configs = generate_multi_part_configs(target_value, preprocessed_inductors, frequency_bands, num_parts, bands)
+        configurations.extend(multi_part_configs)
+        debug_print(f"{num_parts}-part configurations: {len(multi_part_configs)}")
 
-        for inductor in available_inductors:
-            ind_value = parse_inductance(inductor)
-            new_config = current_config + [[inductor]]
-            total_value = sum(parse_inductance(ind) for group in new_config for ind in group)
-            error = error_percentage(total_value)
+    debug_print("Sorting configurations")
+    configurations.sort(key=lambda x: (abs(x[1] - target_value), -convert_mhz_to_hz(x[2])))
+    debug_print(f"Total configurations before limiting: {len(configurations)}")
+    return configurations[:max_configurations]
 
-            debug_print(f"  Trying {format_inductance_value(ind_value)}, Total: {format_inductance_value(total_value)}, Error: {error:.2f}%")
+def generate_single_part_configs(target_value, preprocessed_inductors, frequency_bands, bands):
+    debug_print("generate_single_part_configs")
+    configs = []
+    for model, inductance_uh in preprocessed_inductors:
+        debug_print(f"Checking inductor: {model} ({inductance_uh} uH)")
+        if is_valid_configuration([[model]], frequency_bands, bands):
+            srf = calculate_inductor_configuration_srf([[model]])
+            configs.append(([[model]], inductance_uh, srf))
+            debug_print(f"Valid configuration found: {model}")
+    debug_print(f"Single-part configs found: {len(configs)}")
+    return configs
 
-            if error <= 5:  # Within 5% tolerance
-                accurate_srf = get_accurate_srf(total_value)
-                debug_print(f"Accurate SRF for {format_inductance_value(total_value)}: {format_frequency_value(accurate_srf*1e6)}")
-                required_srf = calculate_srf_safety_factor(total_value) * max_operating_frequency
-                if accurate_srf >= required_srf:
-                    debug_print(f"  Valid combination found: {[format_inductance_value(parse_inductance(ind)) for group in new_config for ind in group]} (Accurate SRF: {format_frequency_value(accurate_srf*1e6)}, Required: {format_frequency_value(required_srf*1e6)})")
-                    return new_config, accurate_srf
-                else:
-                    debug_print(f"  Combination rejected due to low SRF: {[format_inductance_value(parse_inductance(ind)) for group in new_config for ind in group]} (Accurate SRF: {format_frequency_value(accurate_srf*1e6)}, Required: {format_frequency_value(required_srf*1e6)})")
+def generate_multi_part_configs(target_value, preprocessed_inductors, frequency_bands, num_parts, bands):
+    debug_print(f"generate_multi_part_configs: num_parts={num_parts}")
+    configs = []
 
-            if total_value < target:
-                sub_combination, sub_srf = find_combination(target - total_value, available_inductors, new_config, depth + 1)
-                if sub_combination:
-                    return sub_combination, sub_srf
+    def backtrack(current_config, current_value, start_index):
+        debug_print(f"Backtrack: depth={len(current_config)}, current_value={current_value}, start_index={start_index}")
+        if len(current_config) == num_parts:
+            if is_valid_configuration(current_config, frequency_bands, bands):
+                srf = calculate_inductor_configuration_srf(current_config)
+                configs.append((current_config, current_value, srf))
+                debug_print(f"Valid configuration found: {current_config}")
+            return
 
-        return None, None
+        for i in range(start_index, len(preprocessed_inductors)):
+            model, inductance_uh = preprocessed_inductors[i]
+            new_config = current_config + [[model]]
+            new_value = current_value + inductance_uh
+            debug_print(f"Trying inductor {model}, new_value={new_value}")
+            backtrack(new_config, new_value, i)
 
-        combination, srf = find_combination(target_value, sorted_inductors)
-        if combination:
-            total_value = sum(parse_inductance(ind) for group in combination for ind in group)
-            configurations.append((combination, total_value, srf))
-            debug_print(f"Final combination found: {[format_inductance_value(parse_inductance(ind)) for group in combination for ind in group]} (Total: {format_inductance_value(total_value)}, Error: {error_percentage(total_value):.2f}%, SRF: {format_frequency_value(srf*1e6)})")
-    
-        if not configurations:
-            debug_print("No valid configurations found. Possible reasons:")
-            debug_print(f"1. No single inductor or combination within 5% of target value {format_inductance_value(target_value)}")
-            debug_print(f"2. All potential configurations have SRF below required value")
-            debug_print(f"3. Available inductors don't allow for a suitable combination")
-    
-        return configurations
+    backtrack([], 0, 0)
+    debug_print(f"Multi-part configs found: {len(configs)}")
+    return configs
 
-    def get_accurate_srf(inductance):
-        print("DEPRECATED CALL TO get_accurate_srf() SHOULD USE inductor_properties()")
-        debug_print(f"get_accurate_srf()")
-        debug_print(f" inductance = {inductance}")
-    
-        inductance_uh = inductance * 1e6  # Convert to µH
-        debug_print(f" inductance_uh = {inductance_uh}")
-    
-        # Debug: print the keys of INDUCTOR_SRF_RANGES
-        debug_print(f" INDUCTOR_SRF_RANGES keys: {list(INDUCTOR_SRF_RANGES.keys())}")
-    
-        keys = sorted(INDUCTOR_SRF_RANGES.keys())
-        idx = bisect.bisect_left(keys, inductance_uh)
-    
-        if idx == 0:
-            srf_range = INDUCTOR_SRF_RANGES[keys[0]]
-        elif idx == len(keys):
-            srf_range = INDUCTOR_SRF_RANGES[keys[-1]]
-        else:
-            lower_key, upper_key = keys[idx-1], keys[idx]
-            lower_range = INDUCTOR_SRF_RANGES[lower_key]
-            upper_range = INDUCTOR_SRF_RANGES[upper_key]
-    
-            # Linear interpolation
-            lower_srf = sum(lower_range) / len(lower_range)
-            upper_srf = sum(upper_range) / len(upper_range)
-            srf = lower_srf + (upper_srf - lower_srf) * (inductance_uh - lower_key) / (upper_key - lower_key)
-            debug_print(f" Interpolated SRF for {inductance_uh} µH: {srf} MHz")
-            return srf
-    
-        debug_print(f" SRF range for {inductance_uh} µH: {srf_range}")
-        return sum(srf_range) / len(srf_range)  # Return average of the range
+# Check the SRF is reasonable
+def is_valid_configuration(config, frequency_bands, bands):
+    #debug_print(f"is_valid_configuration: config={config}")
+    total_value = sum(get_inductor_properties(model)[0] for group in config for model in group)
+    srf_mhz = calculate_inductor_configuration_srf(config)
+    srf_hz = convert_mhz_to_hz(srf_mhz)
 
-    def find_combination(target, available_inductors, current_config=None, depth=0):
-        if current_config is None:
-            current_config = []
-        
-        if depth >= max_components:
-            return None
+    for band in bands:
+        band_data = frequency_bands[band]
+        max_freq = convert_mhz_to_hz(band_data['end'])
+        if srf_hz <= max_freq:
+            debug_print(f"Invalid configuration {config}: SRF {srf_hz} Hz <= max_freq {max_freq} Hz for band {band}")
+            return False
 
-        debug_print(f"Searching for combination at depth {depth}, target: {format_inductance_value(target)}")
+    #debug_print(f"Valid configuration: total_value={total_value}, SRF={srf_hz} Hz")
+    return True
 
-        for inductor in available_inductors:
-            ind_value = parse_inductance(inductor)
-            new_config = current_config + [[inductor]]
-            total_value = sum(parse_inductance(ind) for group in new_config for ind in group)
-            error = error_percentage(total_value)
+def calculate_inductor_configuration_srf(config):
+    #debug_print(f"calculate_inductor_configuration_srf: config={config}")
+    srf = float('inf')
+    for group in config:
+        group_srf = min(get_inductor_properties(model)[0] for model in group)
+        srf = min(srf, group_srf)
+    #debug_print(f"Calculated SRF: {srf}")
+    return srf
 
-            debug_print(f"  Trying {format_inductance_value(ind_value)}, Total: {format_inductance_value(total_value)}, Error: {error:.2f}%")
+def get_inductor_properties(model):
+    #debug_print(f"get_inductor_properties()")
+    #debug_print(f" model = {model}")
 
-            if error <= 5:  # Within 5% tolerance
-                estimated_srf = estimate_srf(total_value)
-                debug_print(f"Estimated SRF for {format_inductance_value(total_value)}: {format_frequency_value(estimated_srf*1e6)}")
-                accurate_srf = get_accurate_srf(total_value)
-                srf = accurate_srf if accurate_srf is not None else estimated_srf
-                required_srf = calculate_srf_safety_factor(total_value) * max_operating_frequency
-                if srf >= required_srf:
-                    debug_print(f"  Valid combination found: {[format_inductance_value(parse_inductance(ind)) for group in new_config for ind in group]} (Estimated SRF: {format_frequency_value(estimated_srf*1e6)}, Accurate SRF: {format_frequency_value(srf*1e6) if accurate_srf else 'N/A'}, Required: {format_frequency_value(required_srf*1e6)})")
-                    return new_config, srf
-                else:
-                    debug_print(f"  Combination rejected due to low SRF: {[format_inductance_value(parse_inductance(ind)) for group in new_config for ind in group]} (Estimated SRF: {format_frequency_value(estimated_srf*1e6)}, Accurate SRF: {format_frequency_value(srf*1e6) if accurate_srf else 'N/A'}, Required: {format_frequency_value(required_srf*1e6)})")
+    for manufacturer, models in INDUCTORS.items():
+        if model in models:
+            data = models[model]
+            #debug_print(f" Data: {data}")
+            return data['srf_mhz'], data['dcr_ohms'], data['idc_ma']
 
-            if total_value < target:
-                sub_combination = find_combination(target - total_value, available_inductors, new_config, depth + 1)
-                if sub_combination:
-                    return sub_combination
-
-        return None
-
-    combination, srf = find_combination(target_value, sorted_inductors)
-    if combination:
-        total_value = sum(parse_inductance(ind) for group in combination for ind in group)
-        configurations.append((combination, total_value, srf))
-        debug_print(f"Final combination found: {[format_inductance_value(parse_inductance(ind)) for group in combination for ind in group]} (Total: {format_inductance_value(total_value)}, Error: {error_percentage(total_value):.2f}%, SRF: {format_frequency_value(srf*1e6)})")
-
-    if not configurations:
-        debug_print("No valid configurations found. Possible reasons:")
-        debug_print(f"1. No single inductor or combination within 5% of target value {format_inductance_value(target_value)}")
-        debug_print(f"2. All potential configurations have SRF below required value")
-        debug_print("3. Available inductors don't allow for a suitable combination")
-
-    return configurations
-
+    debug_print(f" get_inductor_properties(): No matching inductor found for model '{model}'")
+    return None, None, None
 
 def generate_combinations(target_values, tolerance=0.1, max_configs=3):
     def generate_for_single(target, component_type):
@@ -1544,7 +1421,7 @@ def create_parser():
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
     parser.add_argument("--equivalent-inductor", help="Generate a series-parallel network at the target inductor value (and frequency band)")
-    parser.add_argument("--equivalent-inductor-max-components", type=int, default=4, help="Maximum number of components in a proposed configuration")
+    parser.add_argument("--equivalent-inductor-max-components", type=int, default=3, help="Maximum number of components in a proposed configuration")
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     return parser
@@ -1637,7 +1514,6 @@ def main():
         else:
             print("No valid configurations found.")
 
-        print()
         sys.exit(0)
     # --list-bands
     if args.list_bands:
