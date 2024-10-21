@@ -450,7 +450,7 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=3, max_configurations=30, bands=None):
+def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=3, max_configurations=30, bands=None, min_current=None):
     debug_print(f"Entering generate_inductor_configurations with target_inductance={target_value_h}")
     configurations = []
 
@@ -464,7 +464,9 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
     precise_match = find_precise_match(target_value_h, sorted_inductors_h)
     if precise_match:
         srf = estimate_srf_optimistic(precise_match)
-        configurations.append(([[precise_match]], target_value_h, srf))  # Note the double brackets
+        idc = get_inductor_properties(precise_match)[2]
+        if min_current is None or idc >= min_current * 1000:  # Convert min_current to mA
+            configurations.append(([[precise_match]], target_value_h, srf))
 
     # Generate multi-part configurations
     for num_parts in range(2, max_components + 1):
@@ -473,7 +475,9 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
         for config in new_configs:
             total_value = sum(config)
             srf = min(estimate_srf_optimistic(ind) for ind in config)
-            configurations.append(([config], total_value, srf))  # Wrap config in a list
+            idc = min(get_inductor_properties(ind)[2] for ind in config)
+            if min_current is None or idc >= min_current * 1000:  # Convert min_current to mA
+                configurations.append(([config], total_value, srf))
 
     # Sort configurations by accuracy and limit to max_configurations
     configurations.sort(key=lambda x: abs(x[1] - target_value_h))
@@ -854,6 +858,20 @@ def parse_frequency(value_str):
     }
     value, unit = re.match(r'([\d.]+)\s*([a-z]+)', value_str.lower()).groups()
     return float(value) * units[unit]
+
+def parse_current(value):
+    value = value.lower()
+    if value.endswith('a'):
+        return float(value[:-1])
+    elif value.endswith('ma'):
+        return float(value[:-2]) / 1000
+    elif value.endswith('ua'):
+        return float(value[:-2]) / 1000000
+    else:
+        try:
+            return float(value)
+        except ValueError:
+            raise ValueError(f"Invalid current value: {value}")
 
 def parse_inductance(value):
     getcontext().prec = 15  # Set precision to 15 significant digits
@@ -1487,7 +1505,8 @@ def create_parser():
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
     parser.add_argument("--equivalent-inductor", help="Generate a series-parallel network at the target inductor value (and frequency band)")
-    parser.add_argument("--equivalent-inductor-max-components", type=int, default=5, help="Maximum number of components in a proposed configuration")
+    parser.add_argument("--equivalent-inductor-max-components", type=int, default=4, help="Maximum number of components in a proposed configuration")
+    parser.add_argument('--equivalent-inductor-min-current', type=str, help='Minimum current required for equivalent inductor configurations (eg: \'420mA\')')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
     return parser
@@ -1532,6 +1551,11 @@ def main():
         debug_print(f"Equivalent inductor mode activated with value: {args.equivalent_inductor}")
         inductors = [i * 1e-6 for i in COMPONENTS['inductors_uh']]  # Convert to Henry
         debug_print(f"Available inductors: {inductors}")
+        if args.equivalent_inductor_min_current:
+            min_current = parse_current(args.equivalent_inductor_min_current)
+        else:
+            min_current = None
+        debug_print(f"Minimum current requirement: {min_current}A")
         debug_print(f"Requesting configs...")
         target_value = float(parse_inductance(args.equivalent_inductor))
         configs = generate_inductor_configurations(
@@ -1540,7 +1564,8 @@ def main():
             FREQUENCY_BANDS,
             max_components=args.equivalent_inductor_max_components,
             max_configurations=30,
-            bands=args.bands
+            bands=args.bands,
+            min_current=min_current
         )
         debug_print(f"Received configs: {configs}")
 
@@ -1592,11 +1617,12 @@ def main():
 
     # Check for required arguments for main operation
     if not all([args.power, args.voltage, args.bands, args.mosfet]):
-        parser.error("The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
+        print("Error: The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
+        sys.exit(1)
 
     if args.mosfet not in MOSFETS:
         print(f"Error: MOSFET '{args.mosfet}' not found")
-        return
+        sys.exit(1)
 
     mosfet_data = MOSFETS[args.mosfet]
     mosfet_info = f"{args.mosfet} (Vdss={mosfet_data['vdss_v']}V, Id={mosfet_data['id_a']}A, Rds_on={mosfet_data['rds_on_o']}Ω, Ciss={mosfet_data['ciss_pf']}pF, Coss={mosfet_data['coss_pf']}pF, Crss={mosfet_data['crss_pf']}pF, Vgs_th={mosfet_data['vgs_th_v']}V)"
