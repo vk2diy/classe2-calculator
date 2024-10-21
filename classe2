@@ -193,8 +193,12 @@ def convert_to_uh(value_str):
 def load_inductor_data():
     debug_print("Loading inductor data...")
     with open('inductors.json', 'r') as f:
-        data = commentjson.load(f)
+        return commentjson.load(f)
 
+INDUCTORS = load_inductor_data()
+
+def load_inductor_srf_range_data():
+    data = INDUCTORS
     inductor_srf_ranges = {}
     for manufacturer, inductors in data.items():
         for part_number, inductor in inductors.items():
@@ -222,7 +226,7 @@ def load_inductor_data():
 
     return inductor_srf_ranges
 
-INDUCTOR_SRF_RANGES = load_inductor_data()
+INDUCTOR_SRF_RANGES = load_inductor_srf_range_data()
 
 def get_srf_range(inductance_uh):
     if not INDUCTOR_SRF_RANGES:
@@ -258,39 +262,41 @@ def get_srf_range(inductance_uh):
 
     return [interpolated_srf, interpolated_srf]
 
-import bisect
-
-def get_accurate_srf(inductance):
-    debug_print(f"get_accurate_srf()")
-    debug_print(f" inductance = {inductance}")
-
-    inductance_uh = inductance * 1e6  # Convert to µH
+def get_inductor_properties(inductance_h):
+    inductance_uh = convert_h_to_uh(inductance_h)
+    debug_print(f"get_inductor_properties()")
+    debug_print(f" inductance_h = {inductance_h}")
     debug_print(f" inductance_uh = {inductance_uh}")
 
-    # Debug: print the keys of INDUCTOR_SRF_RANGES
-    debug_print(f" INDUCTOR_SRF_RANGES keys: {list(INDUCTOR_SRF_RANGES.keys())}")
+    best_match = None
+    min_difference = float('inf')
 
-    keys = sorted(INDUCTOR_SRF_RANGES.keys())
-    idx = bisect.bisect_left(keys, inductance_uh)
+    for manufacturer, models in INDUCTORS.items():
+        debug_print(f" Checking manufacturer: {manufacturer}")
+        for model, data in models.items():
+            debug_print(f"  Checking model: {model}")
+            debug_print(f"   Data: {data}")
+            try:
+                model_inductance_uh = convert_to_uh(data['inductance'])
+                debug_print(f"   Parsed inductance: {model_inductance_uh} uH")
+            except Exception as e:
+                debug_print(f"   Error parsing inductance: {e}")
+                debug_print(f"   Raw inductance value: {data['inductance']}")
+                continue
 
-    if idx == 0:
-        srf_range = INDUCTOR_SRF_RANGES[keys[0]]
-    elif idx == len(keys):
-        srf_range = INDUCTOR_SRF_RANGES[keys[-1]]
+            difference = abs(model_inductance_uh - inductance_uh)
+            if difference < min_difference:
+                min_difference = difference
+                best_match = (manufacturer, model, data)
+
+    if best_match:
+        manufacturer, model, data = best_match
+        debug_print(f" Best match: {manufacturer} {model}")
+        debug_print(f" Data: {data}")
+        return data['srf_mhz'], data['dcr_ohms'], data['idc_ma']
     else:
-        lower_key, upper_key = keys[idx-1], keys[idx]
-        lower_range = INDUCTOR_SRF_RANGES[lower_key]
-        upper_range = INDUCTOR_SRF_RANGES[upper_key]
-
-        # Linear interpolation
-        lower_srf = sum(lower_range) / len(lower_range)
-        upper_srf = sum(upper_range) / len(upper_range)
-        srf = lower_srf + (upper_srf - lower_srf) * (inductance_uh - lower_key) / (upper_key - lower_key)
-        debug_print(f" Interpolated SRF for {inductance_uh} µH: {srf} MHz")
-        return srf
-
-    debug_print(f" SRF range for {inductance_uh} µH: {srf_range}")
-    return sum(srf_range) / len(srf_range)  # Return average of the range
+        debug_print(f" No matching inductor found for {inductance_uh} µH")
+        return None, None, None
 
 def estimate_srf(inductance, optimistic=True):
     inductance_nh = inductance * 1e9
@@ -442,6 +448,7 @@ def generate_inductor_configurations(target_value, inductors, frequency_bands, m
         return configurations
 
     def get_accurate_srf(inductance):
+        print("DEPRECATED CALL TO get_accurate_srf() SHOULD USE inductor_properties()")
         debug_print(f"get_accurate_srf()")
         debug_print(f" inductance = {inductance}")
     
@@ -1505,14 +1512,17 @@ def generate_configuration_string(config):
     for group in config:
         group_parts = []
         for inductor in group:
-            ind_value = parse_inductance(inductor)
-            debug_print(f"Processing inductor {inductor} as {ind_value}uH")
-            srf = get_accurate_srf(ind_value)
-            debug_print(f"Accurate SRF for {format_inductance_value(ind_value)}: {format_frequency_value(srf*1e6)}")
-            group_parts.append(f"{format_inductance_value(ind_value)} (SRF {format_frequency_value(srf*1e6)})")
+            ind_value_h = parse_inductance(inductor)
+            debug_print(f"Processing inductor {inductor} as {ind_value_h}H")
+            srf, dcr, idc = get_inductor_properties(ind_value_h)
+            if srf is not None:
+                debug_print(f"Properties for {format_inductance_value(ind_value_h)}: SRF {format_frequency_value(srf*1e6)}, DCR {format_resistance_value(dcr)}, IDC {format_current_value(idc*1e-3)}")
+                group_parts.append(f"{format_inductance_value(ind_value_h)} (SRF {format_frequency_value(srf*1e6)}, DCR {format_resistance_value(dcr)}, IDC {format_current_value(idc*1e-3)})")
+            else:
+                debug_print(f"No properties found for {format_inductance_value(ind_value_h)}")
+                group_parts.append(f"{format_inductance_value(ind_value_h)} (No data available)")
         parts.append(" + ".join(group_parts))
     return " || ".join(parts)
-
 
 def create_parser():
     parser = argparse.ArgumentParser(description='Class-E RF Power Amplifier Calculator')
@@ -1592,51 +1602,24 @@ def main():
 
         max_freq = get_max_frequency(args.bands)
         formatted_bands = ', '.join(format_band_with_range(band) for band in args.bands)
+        target_value = parse_inductance(args.equivalent_inductor)
 
         if configs:
-            target_value = parse_inductance(args.equivalent_inductor)
-            print(f"Configurations for {format_inductance_value(target_value)} on bands {formatted_bands} with maximum operating frequency {format_frequency_value(max_freq)}:")
-            for i, (config, value, srf) in enumerate(configs, 1):
+            print(f"Configurations for {format_inductance_value(target_value)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz:")
+            for i, (config, value, _) in enumerate(configs, 1):
                 accuracy = 100 * (1 - abs(value - target_value) / target_value)
                 parts = sum(len(group) for group in config)
-                print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, SRF: {format_frequency_value(srf*1e6)}")
-    
-                config_str = generate_configuration_string(config)
-                print(f"   Configuration: {config_str}")
+                srf, dcr, idc = get_inductor_properties(value)
+                if srf is not None:
+                    print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, Topology: {generate_configuration_string(config)}")
+                else:
+                    print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, No matching inductor found")
+        
                 print()
         else:
             print("No valid configurations found.")
 
-#        for i, (config, value, srf) in enumerate(configs, 1):
-#            debug_print(f"Config: {config}, Value: {value}, SRF: {srf}")
-#            accuracy = (1 - abs(value - parse_inductance(args.equivalent_inductor)) / parse_inductance(args.equivalent_inductor)) * 100
-#
-#            estimated_srf = calculate_estimated_srf(config)
-#            debug_print(f"Calculated estimated SRF: {estimated_srf:.3f}MHz")
-#            estimated_srf_hz = convert_mhz_to_hz(estimated_srf)
-#            debug_print(f"Estimated SRF in Hz: {estimated_srf_hz:.1f}Hz")
-#            formatted_srf = format_frequency_value(estimated_srf_hz)
-#            debug_print(f"Formatted estimated SRF: {formatted_srf}")
-#            # If there's an approximate reduction due to a parallel configuration, prepend "~"
-#            if(sum(len(group) for group in config)) > 1:
-#                    formatted_srf = f"~{formatted_srf}"
-#            print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {sum(len(group) for group in config)}, SRF: {formatted_srf}")
-#
-#            debug_print("Generating configuration string")
-#            config_strings = []
-#            for group in config:
-#                group_strings = []
-#                for inductor_h in group:
-#                    inductor_uh = convert_h_to_uh(inductor_h)
-#                    debug_print(f"Processing inductor {inductor_h} as {inductor_uh}uH")
-#                    min_srf_mhz, max_srf_mhz = get_srf_range(inductor_uh)
-#                    debug_print(f"SRF range for {inductor_uh:.3f}µH: {min_srf_mhz}-{max_srf_mhz}MHz")
-#                    srf_string = format_frequency_value(convert_mhz_to_hz(min_srf_mhz)) #, max_srf_mhz)
-#                    group_strings.append(f"{format_inductance_value(inductor_h)} (SRF {srf_string})")
-#                config_strings.append(' + '.join(group_strings))
-#        
-#            print("   Configuration:", ' || '.join(config_strings))
-            print()
+        print()
         sys.exit(0)
     # --list-bands
     if args.list_bands:
