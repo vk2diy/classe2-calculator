@@ -479,8 +479,12 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
             if min_current is None or idc >= min_current * 1000:  # Convert min_current to mA
                 configurations.append(([config], total_value, srf))
 
-    # Sort configurations by accuracy and limit to max_configurations
-    configurations.sort(key=lambda x: abs(x[1] - target_value_h))
+    # Sort configurations by part count, unique part count, and accuracy
+    configurations.sort(key=lambda x: (
+        sum(len(group) for group in x[0]),  # Total part count
+        count_unique_parts(x),  # Unique part count
+        -abs(x[1] - target_value_h) / target_value_h  # Negative accuracy (for descending order)
+    ))
     configurations = configurations[:max_configurations]
 
     debug_print(f"Final configurations: {configurations}")
@@ -490,22 +494,21 @@ def find_precise_match(target_value, inductors):
     target_float = parse_inductance(target_value)
     return next((ind for ind in inductors if abs(ind - target_float) < 1e-9), None)
 
-def generate_multi_part_configs(target_value_h, inductors_h, num_parts):
-    debug_print(f"Entering generate_multi_part_configs with target_value_h={target_value_h}, num_parts={num_parts}")
-    debug_print(f"Type of target_value_h: {type(target_value_h)}")
-    debug_print(f"First few inductors: {inductors_h[:5]}")
+def generate_multi_part_configs(target_value_h, inductors_h, num_parts, tolerance=0.1):
     configs = []
-
-    target_value_h = float(target_value_h)  # Ensure target_value_h is a float
-
     for combo in combinations_with_replacement(inductors_h, num_parts):
         total = sum(combo)
-        debug_print(f"Checking combination: {combo}, total: {total}")
-        if 0.9 * target_value_h <= total <= 1.1 * target_value_h:  # 10% tolerance
+        if abs(total - target_value_h) / target_value_h <= tolerance:
             configs.append(list(combo))
-
-    debug_print(f"Generated configs: {configs}")
+        if total > target_value_h * (1 + tolerance):
+            break  # Early pruning
     return configs
+
+def count_unique_parts(config):
+    # Flatten the nested list structure
+    flat_config = [item for sublist in config[0] for item in sublist]
+    # Convert each float to a string representation to make it hashable
+    return len(set(f"{x:.9f}" for x in flat_config))
 
 def is_valid_configuration(config_h, frequency_bands, bands):
     debug_print(f"Checking validity of configuration: {config_h}")
@@ -1574,19 +1577,16 @@ def main():
 
         if configs:
             print(f"Configurations for {format_inductance_value(target_value)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz:")
+
             for i, config_tuple in enumerate(configs, 1):
-                debug_print(f"Processing config_tuple: {config_tuple}")
                 config_groups = config_tuple[0]
-                debug_print(f"Config groups: {config_groups}")
                 value = config_tuple[1]
-                debug_print(f"Value: {value}")
                 srf = config_tuple[2]
-    
+                
                 parts = sum(len(group) for group in config_groups)
-                debug_print(f"Parts: {parts}")
-    
+                unique_parts = count_unique_parts(config_tuple)
                 accuracy = 100 * (1 - abs(value - target_value) / target_value)
-    
+
                 # Calculate total DCR and IDC
                 total_dcr = 0
                 total_idc = float('inf')
@@ -1596,8 +1596,8 @@ def main():
                     group_idc = min(get_inductor_properties(ind)[2] for ind in group)
                     total_dcr += group_dcr
                     total_idc = min(total_idc, group_idc)
-    
-                print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, SRF: {format_frequency_value(convert_mhz_to_hz(srf))}, DCR: {format_resistance_value(total_dcr)}, IDC: {format_current_value(convert_ma_to_a(total_idc))}")
+
+                print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, Unique parts: {unique_parts}, SRF: {format_frequency_value(convert_mhz_to_hz(srf))}, DCR: {format_resistance_value(total_dcr)}, IDC: {format_current_value(convert_ma_to_a(total_idc))}")
     
                 config_str = generate_configuration_string(config_groups)
                 print(f"   Configuration: {config_str}")
