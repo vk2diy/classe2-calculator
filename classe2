@@ -450,7 +450,7 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=3, max_configurations=30, bands=None, min_current=None):
+def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=5, max_configurations=30, bands=None, min_current=None):
     debug_print(f"Entering generate_inductor_configurations with target_inductance={target_value_h}")
     configurations = []
 
@@ -485,10 +485,26 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
         count_unique_parts(x),  # Unique part count
         -abs(x[1] - target_value_h) / target_value_h  # Negative accuracy (for descending order)
     ))
-    configurations = configurations[:max_configurations]
 
-    debug_print(f"Final configurations: {configurations}")
-    return configurations
+    # Select a diverse set of configurations
+    final_configurations = []
+    seen_part_counts = set()
+    seen_unique_part_counts = set()
+
+    for config in configurations:
+        part_count = sum(len(group) for group in config[0])
+        unique_part_count = count_unique_parts(config)
+
+        if part_count not in seen_part_counts or unique_part_count not in seen_unique_part_counts:
+            final_configurations.append(config)
+            seen_part_counts.add(part_count)
+            seen_unique_part_counts.add(unique_part_count)
+
+        if len(final_configurations) >= max_configurations:
+            break
+
+    debug_print(f"Final configurations: {final_configurations}")
+    return final_configurations
 
 def find_precise_match(target_value, inductors):
     target_float = parse_inductance(target_value)
@@ -500,8 +516,8 @@ def generate_multi_part_configs(target_value_h, inductors_h, num_parts, toleranc
         total = sum(combo)
         if abs(total - target_value_h) / target_value_h <= tolerance:
             configs.append(list(combo))
-        if total > target_value_h * (1 + tolerance):
-            break  # Early pruning
+        if len(configs) >= 1000:  # Limit the number of configurations per part count
+            break
     return configs
 
 def count_unique_parts(config):
@@ -1508,7 +1524,7 @@ def create_parser():
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
     parser.add_argument("--equivalent-inductor", help="Generate a series-parallel network at the target inductor value (and frequency band)")
-    parser.add_argument("--equivalent-inductor-max-components", type=int, default=4, help="Maximum number of components in a proposed configuration")
+    parser.add_argument("--equivalent-inductor-max-components", type=int, default=10, help="Maximum number of components in a proposed configuration")
     parser.add_argument('--equivalent-inductor-min-current', type=str, help='Minimum current required for equivalent inductor configurations (eg: \'420mA\')')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
