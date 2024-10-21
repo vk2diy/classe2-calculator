@@ -41,6 +41,152 @@ def convert_uh_to_nh(inductance_uh):
 def convert_ma_to_a(value_ma):
     return value_ma / 1000
 
+# Inductance conversions
+def convert_h_to_mh(value_h):
+    return value_h * 1000
+
+def convert_h_to_uh(value_h):
+    return value_h * 1e6
+
+def convert_h_to_nh(value_h):
+    return value_h * 1e9
+
+def convert_mh_to_h(value_mh):
+    return value_mh / 1000
+
+def convert_uh_to_h(value_uh):
+    return value_uh / 1e6
+
+def convert_nh_to_h(value_nh):
+    return value_nh / 1e9
+
+# Frequency conversions
+def convert_hz_to_khz(value_hz):
+    return value_hz / 1000
+
+def convert_hz_to_mhz(value_hz):
+    return value_hz / 1e6
+
+def convert_hz_to_ghz(value_hz):
+    return value_hz / 1e9
+
+def convert_khz_to_hz(value_khz):
+    return value_khz * 1000
+
+def convert_mhz_to_hz(value_mhz):
+    return value_mhz * 1e6
+
+def convert_ghz_to_hz(value_ghz):
+    return value_ghz * 1e9
+
+# Resistance conversions
+def convert_ohms_to_kohms(value_ohms):
+    return value_ohms / 1000
+
+def convert_ohms_to_mohms(value_ohms):
+    return value_ohms / 1e6
+
+def convert_kohms_to_ohms(value_kohms):
+    return value_kohms * 1000
+
+def convert_mohms_to_ohms(value_mohms):
+    return value_mohms * 1e6
+
+# Current conversions
+def convert_a_to_ma(value_a):
+    return value_a * 1000
+
+def convert_a_to_ua(value_a):
+    return value_a * 1e6
+
+def convert_ma_to_a(value_ma):
+    return value_ma / 1000
+
+def convert_ua_to_a(value_ua):
+    return value_ua / 1e6
+
+# Voltage conversions
+def convert_v_to_mv(value_v):
+    return value_v * 1000
+
+def convert_v_to_uv(value_v):
+    return value_v * 1e6
+
+def convert_mv_to_v(value_mv):
+    return value_mv / 1000
+
+def convert_uv_to_v(value_uv):
+    return value_uv / 1e6
+
+# Capacitance conversions
+def convert_f_to_mf(value_f):
+    return value_f * 1000
+
+def convert_f_to_uf(value_f):
+    return value_f * 1e6
+
+def convert_f_to_nf(value_f):
+    return value_f * 1e9
+
+def convert_f_to_pf(value_f):
+    return value_f * 1e12
+
+def convert_mf_to_f(value_mf):
+    return value_mf / 1000
+
+def convert_uf_to_f(value_uf):
+    return value_uf / 1e6
+
+def convert_nf_to_f(value_nf):
+    return value_nf / 1e9
+
+def convert_pf_to_f(value_pf):
+    return value_pf / 1e12
+
+# Power conversions
+def convert_w_to_mw(value_w):
+    return value_w * 1000
+
+def convert_w_to_kw(value_w):
+    return value_w / 1000
+
+def convert_mw_to_w(value_mw):
+    return value_mw / 1000
+
+def convert_kw_to_w(value_kw):
+    return value_kw * 1000
+
+# Updated formatting functions
+def format_power_value(value_w):
+    if value_w >= 1000:
+        return f"{convert_w_to_kw(value_w):.2f}kW"
+    elif value_w >= 1:
+        return f"{value_w:.2f}W"
+    else:
+        return f"{convert_w_to_mw(value_w):.2f}mW"
+
+def format_voltage_value(value_v):
+    if value_v >= 1000:
+        return f"{value_v / 1000:.2f}kV"
+    elif value_v >= 1:
+        return f"{value_v:.2f}V"
+    elif value_v >= 0.001:
+        return f"{convert_v_to_mv(value_v):.2f}mV"
+    else:
+        return f"{convert_v_to_uv(value_v):.2f}µV"
+
+def format_capacitance_value(value_f):
+    if value_f >= 1:
+        return f"{value_f:.2f}F"
+    elif value_f >= 1e-3:
+        return f"{convert_f_to_mf(value_f):.2f}mF"
+    elif value_f >= 1e-6:
+        return f"{convert_f_to_uf(value_f):.2f}µF"
+    elif value_f >= 1e-9:
+        return f"{convert_f_to_nf(value_f):.2f}nF"
+    else:
+        return f"{convert_f_to_pf(value_f):.2f}pF"
+
 class ClassETopologyGenerator:
 
     def __init__(self):
@@ -849,78 +995,47 @@ def format_number_for_clarity(value,preserve_decimals=False):
 def to_float(value):
     return float(value) if isinstance(value, Decimal) else value
 
-def format_inductance_value(value):
-    value=to_float(value)
-    if value >= 1:
-        return format_number_for_clarity(f"{value:.3f}H")
-    elif value >= 1e-3:
-        return format_number_for_clarity(f"{value*1e3:.3f}mH")
-    elif value >= 1e-9:  # Changed from 1e-6 to 1e-9
-        return format_number_for_clarity(f"{value*1e6:.3f}µH")
+def format_inductance_value(value_h):
+    value_h=to_float(value_h)
+    if value_h >= 1:
+        return format_number_for_clarity(f"{value_h:.3f}H")
+    elif value_h >= 1e-3:
+        return format_number_for_clarity(f"{convert_h_to_mh(value_h):.3f}mH")
+    elif value_h >= 1e-9:
+        return format_number_for_clarity(f"{convert_h_to_uh(value_h):.3f}µH")
     else:
-        return format_number_for_clarity(f"{value*1e9:.3f}nH")
+        return format_number_for_clarity(f"{convert_h_to_nh(value_h):.3f}nH")
 
-def format_capacitance_value(value):
-    value=to_float(value)
-    if value >= 1e-3:
-        return format_number_for_clarity(f"{value*1e3:.3f}mF")
-    elif value >= 1e-6:
-        return format_number_for_clarity(f"{value*1e6:.3f}µF")
-    elif value >= 1e-9:
-        return format_number_for_clarity(f"{value*1e9:.3f}nF")
+def format_resistance_value(value_ohms):
+    value_ohms=to_float(value_ohms)
+    if value_ohms >= 1e6:
+        return format_number_for_clarity(f"{convert_ohms_to_mohms(value_ohms):.3f}MΩ")
+    elif value_ohms >= 1e3:
+        return format_number_for_clarity(f"{convert_ohms_to_kohms(value_ohms):.3f}kΩ")
     else:
-        return format_number_for_clarity(f"{value*1e12:.3f}pF")
+        return format_number_for_clarity(f"{value_ohms:.3f}Ω")
 
-def format_resistance_value(value):
-    value=to_float(value)
-    if value >= 1e6:
-        return format_number_for_clarity(f"{value/1e6:.3f}MΩ")
-    elif value >= 1e3:
-        return format_number_for_clarity(f"{value/1e3:.3f}kΩ")
+def format_frequency_value(value_hz):
+    value_hz=to_float(value_hz)
+    if value_hz >= 1e9:
+        return format_number_for_clarity(f"{convert_hz_to_ghz(value_hz):.3f}GHz")
+    elif value_hz >= 1e6:
+        return format_number_for_clarity(f"{convert_hz_to_mhz(value_hz):.3f}MHz")
+    elif value_hz >= 1e3:
+        return format_number_for_clarity(f"{convert_hz_to_khz(value_hz):.3f}kHz")
     else:
-        return format_number_for_clarity(f"{value:.3f}Ω")
+        return format_number_for_clarity(f"{value_hz:.3f}Hz")
 
-def format_frequency_value(value):
-    value=to_float(value)
-    if value >= 1e9:
-        return format_number_for_clarity(f"{value/1e9:.3f}GHz")
-    elif value >= 1e6:
-        return format_number_for_clarity(f"{value/1e6:.3f}MHz")
-    elif value >= 1e3:
-        return format_number_for_clarity(f"{value/1e3:.3f}kHz")
+def format_current_value(value_a):
+    value_a=to_float(value_a)
+    if value_a >= 1:
+        return format_number_for_clarity(f"{value_a:.3f}A")
+    elif value_a >= 1e-3:
+        return format_number_for_clarity(f"{convert_a_to_ma(value_a):.3f}mA")
+    elif value_a >= 1e-6:
+        return format_number_for_clarity(f"{convert_a_to_ua(value_a):.3f}µA")
     else:
-        return format_number_for_clarity(f"{value:.3f}Hz")
-
-def format_voltage_value(value):
-    value=to_float(value)
-    if value >= 1e6:
-        return format_number_for_clarity(f"{value/1e6:.3f}MV")
-    elif value >= 1e3:
-        return format_number_for_clarity(f"{value/1e3:.3f}kV")
-    else:
-        return format_number_for_clarity(f"{value:.3f}V")
-
-def format_current_value(value):
-    value=to_float(value)
-    if value >= 1:
-        return format_number_for_clarity(f"{value:.3f}A")
-    elif value >= 1e-3:
-        return format_number_for_clarity(f"{value*1e3:.3f}mA")
-    elif value >= 1e-6:
-        return format_number_for_clarity(f"{value*1e6:.3f}µA")
-    else:
-        return format_number_for_clarity(f"{value*1e9:.3f}nA")
-
-def format_power_value(value):
-    value=to_float(value)
-    if value >= 1e9:
-        return format_number_for_clarity(f"{value/1e9:.3f}GW")
-    elif value >= 1e6:
-        return format_number_for_clarity(f"{value/1e6:.3f}MW")
-    elif value >= 1e3:
-        return format_number_for_clarity(f"{value/1e3:.3f}kW")
-    else:
-        return format_number_for_clarity(f"{value:.3f}W")
+        return format_number_for_clarity(f"{convert_a_to_na(valua_a):.3f}nA")
 
 def format_capacitance_series_string(target_value, component_list):
     components = recommend_components(target_value, component_list, False)
