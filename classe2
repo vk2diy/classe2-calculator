@@ -345,8 +345,8 @@ def find_precise_match(target_value, inductors):
     target_float = parse_inductance(target_value)
     return next((ind for ind in inductors if abs(ind - target_float) < 1e-9), None)
 
-def generate_multi_part_configs(target_value, inductors, num_parts):
-    debug_print(f"Entering generate_multi_part_configs with target_value={target_value}, num_parts={num_parts}")
+def generate_multi_part_configs(target_value_h, inductors_h, num_parts):
+    debug_print(f"Entering generate_multi_part_configs with target_value_h={target_value_h}, num_parts={num_parts}")
     configs = []
 
     def backtrack(current_config, current_value, start_index):
@@ -356,10 +356,10 @@ def generate_multi_part_configs(target_value, inductors, num_parts):
             configs.append(current_config)
             return
 
-        for i in range(start_index, len(inductors)):
-            new_value = current_value + inductors[i]
-            if abs(new_value - target_value) / target_value <= 0.1:  # 10% tolerance
-                backtrack(current_config + [inductors[i]], new_value, i)
+        for i in range(start_index, len(inductors_h)):
+            new_value = current_value + inductors_h[i]
+            if abs(new_value - target_value_h) / target_value_h <= 0.1:  # 10% tolerance
+                backtrack(current_config + [inductors_h[i]], new_value, i)
 
     backtrack([], 0, 0)
     debug_print(f"Generated configs: {configs}")
