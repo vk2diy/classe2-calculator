@@ -761,7 +761,7 @@ def parse_frequency(value_str):
 def parse_inductance(value):
     getcontext().prec = 15  # Set precision to 15 significant digits
 
-    debug_print(f"Parsing inductance value: {value}")
+    #debug_print(f"Parsing inductance value: {value}")
 
     if isinstance(value, (int, float)):
         return to_float(Decimal(value))
@@ -779,9 +779,9 @@ def parse_inductance(value):
         if value.endswith(unit):
             try:
                 numeric_part = value[:-len(unit)]
-                debug_print(f"Numeric part: {numeric_part}")
+                #debug_print(f"Numeric part: {numeric_part}")
                 result = to_float(Decimal(numeric_part) * multiplier)
-                debug_print(f"Parsed result: {result}")
+                #debug_print(f"Parsed result: {result}")
                 return result
             except decimal.InvalidOperation as e:
                 debug_print(f"Error parsing {value}: {e}")
@@ -789,7 +789,7 @@ def parse_inductance(value):
 
     try:
         result = to_float(Decimal(value))
-        debug_print(f"Parsed result: {result}")
+        #debug_print(f"Parsed result: {result}")
         return result
     except decimal.InvalidOperation as e:
         debug_print(f"Error parsing {value}: {e}")
