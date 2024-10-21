@@ -313,22 +313,22 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value, inductors, frequency_bands, max_components=3, max_configurations=30, bands=None):
-    debug_print(f"Entering generate_inductor_configurations with target_value={target_value}")
+def generate_inductor_configurations(target_inductance_in_h_or_string, inductors_h, frequency_bands, max_components=3, max_configurations=30, bands=None):
+    debug_print(f"Entering generate_inductor_configurations with target_inductance={target_inductance_in_h_or_string}")
     configurations = []
 
-    target_h = parse_inductance(target_value)
-    sorted_inductors = sorted(set(inductors))
+    target_h = parse_inductance(target_inductance_in_h_or_string)
+    sorted_inductors_h = sorted(set(inductors_h))
 
     # Check for precise match with 1 part
-    precise_match = find_precise_match(target_h, sorted_inductors)
+    precise_match = find_precise_match(target_h, sorted_inductors_h)
     if precise_match:
         srf = calculate_inductor_configuration_srf([precise_match])
         configurations.append(([[precise_match]], target_h, srf))  # Note the double brackets
 
     # Generate multi-part configurations
     for num_parts in range(2, max_components + 1):
-        new_configs = generate_multi_part_configs(target_h, sorted_inductors, num_parts)
+        new_configs = generate_multi_part_configs(target_h, sorted_inductors_h, num_parts)
         for config in new_configs:
             total_value = sum(config)
             srf = calculate_inductor_configuration_srf(config)
