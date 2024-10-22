@@ -451,32 +451,24 @@ def series_combination(*values):
     return sum(values)
 
 def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=5, max_configurations=30, bands=None, min_current=None):
-    debug_print(f"Entering generate_inductor_configurations with target_inductance={target_value_h}")
     configurations = []
 
-    # Prune inductors based on SRF requirement
     pruned_inductors = prune_inductors(inductors_h, frequency_bands, bands)
-
-    # Sort pruned inductors by value
     sorted_inductors_h = sorted(set(pruned_inductors))
 
-    # Check for precise match with 1 part
     precise_match = find_precise_match(target_value_h, sorted_inductors_h)
     if precise_match:
         srf = estimate_srf_optimistic(precise_match)
         idc = get_inductor_properties(precise_match)[2]
-        if min_current is None or idc >= min_current * 1000:  # Convert min_current to mA
+        if min_current is None or idc >= min_current * 1000:
             configurations.append(([[precise_match]], target_value_h, srf))
 
-    # Generate multi-part configurations
     for num_parts in range(2, max_components + 1):
         new_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
-        debug_print(f"Generated {len(new_configs)} configurations for {num_parts} parts")
-        for config in new_configs:
-            total_value = sum(config)
+        for config, total_value, accuracy in new_configs:
             srf = min(estimate_srf_optimistic(ind) for ind in config)
             idc = min(get_inductor_properties(ind)[2] for ind in config)
-            if min_current is None or idc >= min_current * 1000:  # Convert min_current to mA
+            if min_current is None or idc >= min_current * 1000:
                 configurations.append(([config], total_value, srf))
 
     # Sort configurations by part count, unique part count, and accuracy
@@ -486,37 +478,27 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
         -abs(x[1] - target_value_h) / target_value_h  # Negative accuracy (for descending order)
     ))
 
-    # Select a diverse set of configurations
-    final_configurations = []
-    seen_part_counts = set()
-    seen_unique_part_counts = set()
+    return configurations[:max_configurations]
 
-    for config in configurations:
-        part_count = sum(len(group) for group in config[0])
-        unique_part_count = count_unique_parts(config)
-
-        if part_count not in seen_part_counts or unique_part_count not in seen_unique_part_counts:
-            final_configurations.append(config)
-            seen_part_counts.add(part_count)
-            seen_unique_part_counts.add(unique_part_count)
-
-        if len(final_configurations) >= max_configurations:
-            break
-
-    debug_print(f"Final configurations: {final_configurations}")
-    return final_configurations
 
 def find_precise_match(target_value, inductors):
     target_float = parse_inductance(target_value)
     return next((ind for ind in inductors if abs(ind - target_float) < 1e-9), None)
 
-def generate_multi_part_configs(target_value_h, inductors_h, num_parts, tolerance=0.1):
+def generate_multi_part_configs(target_value_h, inductors_h, num_parts, tolerance=0.05):
     configs = []
+    min_inductor_value = (target_value_h / num_parts) * 0.1  # 10% of average part value
+
     for combo in combinations_with_replacement(inductors_h, num_parts):
+        if combo[0] < min_inductor_value:
+            continue
+
         total = sum(combo)
-        if abs(total - target_value_h) / target_value_h <= tolerance:
-            configs.append(list(combo))
-        if len(configs) >= 1000:  # Limit the number of configurations per part count
+        accuracy = 1 - abs(total - target_value_h) / target_value_h
+        if accuracy >= (1 - tolerance):
+            configs.append((list(combo), total, accuracy))
+
+        if len(configs) >= 1000:
             break
     return configs
 
@@ -1527,7 +1509,7 @@ def create_parser():
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
     parser.add_argument("--equivalent-inductor", help="Generate a series-parallel network at the target inductor value (and frequency band)")
-    parser.add_argument("--equivalent-inductor-max-components", type=int, default=10, help="Maximum number of components in a proposed configuration")
+    parser.add_argument("--equivalent-inductor-max-components", type=int, default=5, help="Maximum number of components in a proposed configuration")
     parser.add_argument('--equivalent-inductor-min-current', type=str, help='Minimum current required for equivalent inductor configurations (eg: \'420mA\')')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
