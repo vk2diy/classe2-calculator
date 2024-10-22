@@ -512,7 +512,7 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
     configurations.sort(key=lambda x: (
         sum(len(group) for group in x[0]),  # Total part count
         count_unique_parts(x),  # Unique part count
-        -abs(x[1] - target_value_h) / target_value_h  # Negative accuracy (for descending order)
+        (abs(x[1] - target_value_h) / target_value_h), # Accuracy
     ))
 
     return configurations[:max_configurations]
