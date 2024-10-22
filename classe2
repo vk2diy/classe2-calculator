@@ -394,25 +394,11 @@ def preprocess_inductors(inductors_data):
     return preprocessed_data
 
 def prune_inductors(inductors_h, frequency_bands, bands):
-    max_freq = max(frequency_bands[band]['end'] for band in bands)
-    min_srf = max_freq * 3  # SRF should be at least 3 times the max frequency
-
-    pruned_inductors = []
-    for ind in inductors_h:
-        debug_print(f"Checking inductor: {ind}H")
-        try:
-            srf = estimate_srf_optimistic(ind)
-            debug_print(f"  Estimated SRF: {srf}MHz")
-            if srf >= min_srf:
-                pruned_inductors.append(ind)
-                debug_print(f"  Accepted")
-            else:
-                debug_print(f"  Rejected (SRF too low)")
-        except Exception as e:
-            debug_print(f"  Error estimating SRF: {str(e)}")
-
-    debug_print(f"Pruned inductors from {len(inductors_h)} to {len(pruned_inductors)} based on SRF requirement")
-    return pruned_inductors
+    max_freq = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
+    debug_print(f"prune_inductors() for bands {bands} means maximum frequency {max_freq}MHz")
+    pruned = [ind for ind in inductors_h if estimate_srf_optimistic(ind) > max_freq * 3]
+    debug_print(f"prune_inductors() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
+    return pruned
 
 INDUCTORS = load_inductor_data()
 PREPROCESSED_INDUCTORS = preprocess_inductors(INDUCTORS)
@@ -505,13 +491,24 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
 
     for num_parts in range(2, max_components + 1):
         new_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
-        for config, total_value, accuracy in new_configs:
-            srf = min(estimate_srf_optimistic(ind) for ind in config)
-            idc = min(get_inductor_properties(ind)[2] for ind in config)
-            if min_current is None or idc >= min_current * 1000:
-                configurations.append(([config], total_value, srf))
+        for config in new_configs:
+            if isinstance(config, (int, float)):
+                config = [config]
+            elif isinstance(config[0], list):
+                config = [item for sublist in config for item in sublist]
 
-    # Sort configurations by part count, unique part count, and accuracy
+            total_value = sum(config)
+            try:
+                srf = min(estimate_srf_optimistic(ind) for ind in config)
+                dcr = sum(get_inductor_properties(ind)[1] for ind in config)
+                idc = min(get_inductor_properties(ind)[2] for ind in config)
+
+                if min_current is None or idc >= min_current * 1000:
+                    configurations.append(([config], total_value, srf))
+            except ValueError as e:
+                print(f"Warning: Skipping configuration due to error: {e}")
+                continue
+
     configurations.sort(key=lambda x: (
         sum(len(group) for group in x[0]),  # Total part count
         count_unique_parts(x),  # Unique part count
@@ -519,7 +516,6 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
     ))
 
     return configurations[:max_configurations]
-
 
 def find_precise_match(target_value, inductors):
     target_float = parse_inductance(target_value)
@@ -536,7 +532,7 @@ def generate_multi_part_configs(target_value_h, inductors_h, num_parts, toleranc
         total = sum(combo)
         accuracy = 1 - abs(total - target_value_h) / target_value_h
         if accuracy >= (1 - tolerance):
-            configs.append((list(combo), total, accuracy))
+            configs.append(list(combo))  # Always return a list of inductor values
 
         if len(configs) >= 1000:
             break
@@ -568,12 +564,21 @@ def calculate_inductor_configuration_srf(config):
     # For now, we'll use a placeholder implementation
     return min(get_inductor_properties(ind)[0] for ind in config)
 
-def get_inductor_properties(inductance):
+def get_inductor_properties(inductance, tolerance=1e-06):
+    closest_match = None
+    min_difference = float('inf')
     for manufacturer, models in INDUCTORS.items():
         for model, data in models.items():
-            if abs(parse_inductance(data['inductance']) - inductance) < 1e-9:
-                return data['srf_mhz'], data['dcr_ohms'], data['idc_ma']
-    return (float('inf'), 0, float('inf'))  # Default values if no match is found
+            current_inductance = parse_inductance(data['inductance'])
+            difference = abs(current_inductance - inductance)
+            if difference < min_difference:
+                min_difference = difference
+                closest_match = data
+
+    if closest_match and min_difference <= tolerance:
+        return closest_match['srf_mhz'], closest_match['dcr_ohms'], closest_match['idc_ma']
+    else:
+        raise ValueError(f"No matching inductor found for inductance {inductance}µH within tolerance {tolerance}")
 
 def generate_combinations(target_values, tolerance=0.1, max_configs=3):
     def generate_for_single(target, component_type):
