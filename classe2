@@ -480,7 +480,7 @@ def parallel_combination(v1, v2):
 def series_combination(*values):
     return sum(values)
 
-def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=5, max_configurations=30, bands=None, min_current=None):
+def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=3, max_configurations=15, bands=None, min_current=None, min_accuracy=0.85):
     configurations = []
 
     pruned_inductors = prune_inductors(inductors_h, frequency_bands, bands)
@@ -488,31 +488,83 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
 
     max_freq = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
 
-    for num_parts in range(1, max_components + 1):
-        new_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
-        for config in new_configs:
-            total_value = sum(config)
-            try:
-                srf = min(estimate_srf_optimistic(ind) for ind in config)
-                if srf > max_freq * 2:  # Ensure SRF is at least 2 times the max frequency
-                    dcr = sum(get_inductor_properties(ind)[1] for ind in config)
-                    idc = min(get_inductor_properties(ind)[2] for ind in config)
+    def calculate_total_inductance(config):
+        return sum(config)
 
-                    if min_current is None or idc >= min_current * 1000:
-                        configurations.append(([config], total_value, srf))
+    def count_unique_parts(config):
+        return len(set(config))
+
+    for num_parts in range(1, max_components + 1):
+        series_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
+        for config in series_configs:
+            try:
+                total_value = calculate_total_inductance(config)
+                accuracy = 1 - abs(total_value - target_value_h) / target_value_h
+                if accuracy >= min_accuracy:
+                    srf = min(estimate_srf_optimistic(ind) for ind in config)
+                    if srf > max_freq * 3:
+                        dcr = sum(get_inductor_properties(ind)[1] for ind in config)
+                        idc = min(get_inductor_properties(ind)[2] for ind in config)
+
+                        if min_current is None or idc >= min_current * 1000:
+                            configurations.append((tuple(config), total_value, srf))
             except ValueError as e:
                 print(f"Warning: Skipping configuration due to error: {e}")
                 continue
 
-    # Modified sorting key
+    # Remove duplicates
+    configurations = list(set(configurations))
+
+    # Sort configurations
     configurations.sort(key=lambda x: (
-        sum(len(group) for group in x[0]),  # Total part count
-        len(set(ind for group in x[0] for ind in group)),  # Unique part count
-        -abs(x[1] - target_value_h) / target_value_h,  # Negative accuracy (for descending order)
+        len(x[0]),  # Total part count
+        count_unique_parts(x[0]),  # Unique part count
+        abs(x[1] - target_value_h) / target_value_h,  # Accuracy (lower is better)
         -x[2]  # Negative SRF (for descending order)
     ))
 
     return configurations[:max_configurations]
+
+def calculate_total_inductance(variant):
+    return 1 / sum(1 / sum(branch) for branch in variant)
+
+    for num_parts in range(1, max_components + 1):
+        series_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
+        for config in series_configs:
+            for variant in generate_parallel_variants(config):
+                try:
+                    total_value = calculate_total_inductance(variant)
+                    accuracy = 1 - abs(total_value - target_value_h) / target_value_h
+                    if accuracy >= min_accuracy:
+                        srf = min(estimate_srf_optimistic(ind) for branch in variant for ind in branch)
+                        if srf > max_freq * 3:
+                            dcr = 1 / sum(1 / sum(get_inductor_properties(ind)[1] for ind in branch) for branch in variant)
+                            idc = sum(min(get_inductor_properties(ind)[2] for ind in branch) for branch in variant)
+
+                            if min_current is None or idc >= min_current * 1000:
+                                configurations.append((variant, total_value, srf))
+                except ValueError as e:
+                    print(f"Warning: Skipping configuration due to error: {e}")
+                    continue
+
+    configurations.sort(key=lambda x: (
+        -abs(x[1] - target_value_h) / target_value_h,  # Negative accuracy (for descending order)
+        sum(len(branch) for branch in x[0]),  # Total part count
+        len(set(ind for branch in x[0] for ind in branch)),  # Unique part count
+        -x[2]  # Negative SRF (for descending order)
+    ))
+
+    return configurations[:max_configurations]
+
+def generate_parallel_variants(config):
+    if not isinstance(config, list):
+        config = [config]
+    variants = [[config]]  # Single series string
+    for n in range(2, 5):  # Consider up to 4 parallel strings
+        if len(config) % n == 0:
+            parallel_config = [config[i:i+len(config)//n] for i in range(0, len(config), len(config)//n)]
+            variants.append(parallel_config)
+    return variants
 
 def find_precise_match(target_value, inductors):
     target_float = parse_inductance(target_value)
@@ -1551,7 +1603,8 @@ def create_parser():
     parser.add_argument('--duty-cycle', type=float, default=0.5, help='Duty cycle (default: 0.5)')
     parser.add_argument('--efficiency', type=float, default=0.85, help='Efficiency (default: 0.85)')
     parser.add_argument("--equivalent-inductor", help="Generate a series-parallel network at the target inductor value (and frequency band)")
-    parser.add_argument("--equivalent-inductor-max-components", type=int, default=5, help="Maximum number of components in a proposed configuration")
+    parser.add_argument("--equivalent-inductor-max-components", type=int, default=12, help="Maximum number of components in a proposed configuration")
+    parser.add_argument("--equivalent-inductor-max-configurations", type=int, default=10, help="Maximum number of configurations to return")
     parser.add_argument('--equivalent-inductor-min-current', type=str, help='Minimum current required for equivalent inductor configurations (eg: \'420mA\')')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
     
@@ -1605,13 +1658,13 @@ def main():
             min_current_string = ""
         debug_print(f"Minimum current requirement: {min_current}")
         debug_print(f"Requesting configs...")
-        target_value = float(parse_inductance(args.equivalent_inductor))
+        target_value_h = float(parse_inductance(args.equivalent_inductor))
         configs = generate_inductor_configurations(
-            target_value,
+            target_value_h,
             inductors,
             FREQUENCY_BANDS,
             max_components=args.equivalent_inductor_max_components,
-            max_configurations=30,
+            max_configurations=args.equivalent_inductor_max_configurations,
             bands=args.bands,
             min_current=min_current
         )
@@ -1621,32 +1674,26 @@ def main():
         formatted_bands = ', '.join(format_band_with_range(band) for band in args.bands)
 
         if configs:
-            print(f"Configurations for {format_inductance_value(target_value)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz{min_current_string}:")
+            print(f"Configurations for {format_inductance_value(target_value_h)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz{min_current_string}:")
+
+            def format_series_parallel_config(config):
+                if len(config) == 1:  # Series configuration
+                    return " + ".join(format_inductance_value(ind) for ind in config[0])
+                else:  # Parallel configuration
+                    return " || ".join("(" + " + ".join(format_inductance_value(ind) for ind in branch) + ")" for branch in config)
 
             for i, config_tuple in enumerate(configs, 1):
-                config_groups = config_tuple[0]
-                value = config_tuple[1]
-                srf = config_tuple[2]
-                
-                parts = sum(len(group) for group in config_groups)
-                unique_parts = count_unique_parts(config_tuple)
-                accuracy = 100 * (1 - abs(value - target_value) / target_value)
-
-                # Calculate total DCR and IDC
-                total_dcr = 0
-                total_idc = float('inf')
-    
-                for group in config_groups:
-                    group_dcr = sum(get_inductor_properties(ind)[1] for ind in group)
-                    group_idc = min(get_inductor_properties(ind)[2] for ind in group)
-                    total_dcr += group_dcr
-                    total_idc = min(total_idc, group_idc)
-
-                print(f"{i}. Accuracy: {accuracy:.2f}%, Parts: {parts}, Unique parts: {unique_parts}, SRF: {format_frequency_value(convert_mhz_to_hz(srf))}, DCR: {format_resistance_value(total_dcr)}, IDC: {format_current_value(convert_ma_to_a(total_idc))}")
-    
-                config_str = generate_configuration_string(config_groups)
-                print(f"   Configuration: {config_str}")
+                config, value, srf = config_tuple
+                parts = len(config)
+                unique_parts = len(set(config))
+            
+                dcr = sum(get_inductor_properties(ind)[1] for ind in config)
+                idc = min(get_inductor_properties(ind)[2] for ind in config)
+            
+                print(f"{i}. Accuracy: {(1 - abs(value - target_value_h) / target_value_h)*100:.2f}%, Parts: {parts}, Unique parts: {unique_parts}, SRF: {format_frequency_value(convert_mhz_to_hz(srf))}, DCR: {format_resistance_value(dcr)}, IDC: {format_current_value(convert_ma_to_a(idc))}")
+                print(f"   Configuration: {' + '.join(format_inductance_value(ind) for ind in config)}")
                 print()
+
         else:
             print("No valid configurations found.")
 
@@ -1663,6 +1710,7 @@ def main():
     # Check for required arguments for main operation
     if not all([args.power, args.voltage, args.bands, args.mosfet]):
         print("Error: The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
+        usage()
         sys.exit(1)
 
     if args.mosfet not in MOSFETS:
