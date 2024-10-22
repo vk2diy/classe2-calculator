@@ -489,41 +489,50 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
     max_freq = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
 
     def calculate_total_inductance(config):
-        return sum(config)
-
-    def count_unique_parts(config):
-        return len(set(config))
+        if isinstance(config[0], (int, float)):  # Series configuration
+            return sum(config)
+        else:  # Parallel configuration
+            return 1 / sum(1 / sum(branch) for branch in config)
 
     for num_parts in range(1, max_components + 1):
         series_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
         for config in series_configs:
-            try:
-                total_value = calculate_total_inductance(config)
-                accuracy = 1 - abs(total_value - target_value_h) / target_value_h
-                if accuracy >= min_accuracy:
-                    srf = min(estimate_srf_optimistic(ind) for ind in config)
-                    if srf > max_freq * 3:
-                        dcr = sum(get_inductor_properties(ind)[1] for ind in config)
-                        idc = min(get_inductor_properties(ind)[2] for ind in config)
+            variants = [config] + generate_parallel_variants(config)
+            for variant in variants:
+                try:
+                    total_value = calculate_total_inductance(variant)
+                    accuracy = 1 - abs(total_value - target_value_h) / target_value_h
+                    if accuracy >= min_accuracy:
+                        if isinstance(variant[0], (int, float)):  # Series configuration
+                            srf = min(estimate_srf_optimistic(ind) for ind in variant)
+                            dcr = sum(get_inductor_properties(ind)[1] for ind in variant)
+                            idc = min(get_inductor_properties(ind)[2] for ind in variant)
+                        else:  # Parallel configuration
+                            srf = min(estimate_srf_optimistic(ind) for branch in variant for ind in branch)
+                            dcr = 1 / sum(1 / sum(get_inductor_properties(ind)[1] for ind in branch) for branch in variant)
+                            idc = sum(min(get_inductor_properties(ind)[2] for ind in branch) for branch in variant)
 
-                        if min_current is None or idc >= min_current * 1000:
-                            configurations.append((tuple(config), total_value, srf))
-            except ValueError as e:
-                print(f"Warning: Skipping configuration due to error: {e}")
-                continue
+                        if srf > max_freq * 3 and (min_current is None or idc >= min_current * 1000):
+                            configurations.append((variant, total_value, srf, dcr, idc))
+                except ValueError as e:
+                    print(f"Warning: Skipping configuration due to error: {e}")
+                    continue
 
-    # Remove duplicates
-    configurations = list(set(configurations))
+    # Remove duplicates and sort configurations
+    unique_configs = {}
+    for config in configurations:
+        key = tuple(sorted(config[0])) if isinstance(config[0][0], (int, float)) else tuple(sorted(tuple(sorted(branch)) for branch in config[0]))
+        if key not in unique_configs or abs(config[1] - target_value_h) < abs(unique_configs[key][1] - target_value_h):
+            unique_configs[key] = config
 
-    # Sort configurations
-    configurations.sort(key=lambda x: (
-        len(x[0]),  # Total part count
-        count_unique_parts(x[0]),  # Unique part count
-        abs(x[1] - target_value_h) / target_value_h,  # Accuracy (lower is better)
+    sorted_configs = sorted(unique_configs.values(), key=lambda x: (
+        sum(len(branch) if isinstance(branch, (list, tuple)) else 1 for branch in x[0]),  # Total part count
+        len(set(ind for branch in (x[0] if isinstance(x[0][0], (list, tuple)) else [x[0]]) for ind in branch)),  # Unique part count
+        abs(x[1] - target_value_h) / target_value_h,  # Accuracy
         -x[2]  # Negative SRF (for descending order)
     ))
 
-    return configurations[:max_configurations]
+    return sorted_configs[:max_configurations]
 
 def calculate_total_inductance(variant):
     return 1 / sum(1 / sum(branch) for branch in variant)
@@ -557,13 +566,12 @@ def calculate_total_inductance(variant):
     return configurations[:max_configurations]
 
 def generate_parallel_variants(config):
-    if not isinstance(config, list):
-        config = [config]
-    variants = [[config]]  # Single series string
-    for n in range(2, 5):  # Consider up to 4 parallel strings
+    variants = []
+    for n in range(2, min(len(config) + 1, 5)):  # Consider up to 4 parallel strings
         if len(config) % n == 0:
-            parallel_config = [config[i:i+len(config)//n] for i in range(0, len(config), len(config)//n)]
-            variants.append(parallel_config)
+            variant = [config[i:i+len(config)//n] for i in range(0, len(config), len(config)//n)]
+            if len(variant) >= 2:  # Only include true parallel configurations
+                variants.append(variant)
     return variants
 
 def find_precise_match(target_value, inductors):
@@ -588,10 +596,7 @@ def generate_multi_part_configs(target_value_h, inductors_h, num_parts, toleranc
     return configs
 
 def count_unique_parts(config):
-    # Flatten the nested list structure
-    flat_config = [item for sublist in config[0] for item in sublist]
-    # Convert each float to a string representation to make it hashable
-    return len(set(f"{x:.9f}" for x in flat_config))
+    return len(set(config))
 
 def is_valid_configuration(config_h, frequency_bands, bands):
     debug_print(f"Checking validity of configuration: {config_h}")
@@ -1676,22 +1681,25 @@ def main():
         if configs:
             print(f"Configurations for {format_inductance_value(target_value_h)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz{min_current_string}:")
 
-            def format_series_parallel_config(config):
-                if len(config) == 1:  # Series configuration
-                    return " + ".join(format_inductance_value(ind) for ind in config[0])
+            def count_unique_parts(config):
+                if isinstance(config[0], (int, float)):  # Series configuration
+                    return len(set(config))
+                else:  # Parallel configuration
+                    return len(set(ind for branch in config for ind in branch))
+         
+            def format_configuration(config):
+                if isinstance(config[0], (int, float)):  # Series configuration
+                    return " + ".join(format_inductance_value(ind) for ind in config)
                 else:  # Parallel configuration
                     return " || ".join("(" + " + ".join(format_inductance_value(ind) for ind in branch) + ")" for branch in config)
 
             for i, config_tuple in enumerate(configs, 1):
-                config, value, srf = config_tuple
-                parts = len(config)
-                unique_parts = len(set(config))
-            
-                dcr = sum(get_inductor_properties(ind)[1] for ind in config)
-                idc = min(get_inductor_properties(ind)[2] for ind in config)
+                config, value, srf, dcr, idc = config_tuple
+                parts = sum(len(branch) if isinstance(branch, list) else 1 for branch in config)
+                unique_parts = len(set(ind for branch in (config if isinstance(config[0], list) else [config]) for ind in branch))
             
                 print(f"{i}. Accuracy: {(1 - abs(value - target_value_h) / target_value_h)*100:.2f}%, Parts: {parts}, Unique parts: {unique_parts}, SRF: {format_frequency_value(convert_mhz_to_hz(srf))}, DCR: {format_resistance_value(dcr)}, IDC: {format_current_value(convert_ma_to_a(idc))}")
-                print(f"   Configuration: {' + '.join(format_inductance_value(ind) for ind in config)}")
+                print(f"   Configuration: {format_configuration(config)}")
                 print()
 
         else:
