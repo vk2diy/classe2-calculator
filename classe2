@@ -878,29 +878,32 @@ def parse_frequency(value_str):
     value, unit = re.match(r'([\d.]+)\s*([a-z]+)', value_str.lower()).groups()
     return float(value) * units[unit]
 
-def parse_current(value):
-    value = value.lower()
-    if value.endswith('a'):
-        return float(value[:-1])
-    elif value.endswith('ma'):
-        return float(value[:-2]) / 1000
-    elif value.endswith('ua'):
-        return float(value[:-2]) / 1000000
+def parse_current(value_str):
+    debug_print(f"parse_current() called with value_str='{value_str}'")
+    value_str = value_str.lower()
+    if value_str.endswith('ma'):
+        return float(value_str[:-2]) / 1000
+    elif value_str.endswith('m'):  # Add this case for 'mA' without the 'A'
+        return float(value_str[:-1]) / 1000
+    elif value_str.endswith('ua'):
+        return float(value_str[:-2]) / 1000000
+    elif value_str_str.endswith('a'):
+        return float(value_str[:-1])
     else:
         try:
-            return float(value)
+            return float(value_str)
         except ValueError:
-            raise ValueError(f"Invalid current value: {value}")
+            raise ValueError(f"Invalid current value_str: {value}")
 
-def parse_inductance(value):
+def parse_inductance(value_str):
     getcontext().prec = 15  # Set precision to 15 significant digits
 
-    #debug_print(f"Parsing inductance value: {value}")
+    #debug_print(f"Parsing inductance value_str: {value}")
 
-    if isinstance(value, (int, float)):
-        return to_float(Decimal(value))
+    if isinstance(value_str, (int, float)):
+        return to_float(Decimal(value_str))
 
-    value = value.lower().replace('µ', 'u')  # Replace micro symbol with 'u'
+    value_str = value_str.lower().replace('µ', 'u')  # Replace micro symbol with 'u'
     multipliers = {
         'ph': Decimal('1e-12'),
         'nh': Decimal('1e-9'),
@@ -910,24 +913,24 @@ def parse_inductance(value):
     }
 
     for unit, multiplier in multipliers.items():
-        if value.endswith(unit):
+        if value_str.endswith(unit):
             try:
-                numeric_part = value[:-len(unit)]
+                numeric_part = value_str[:-len(unit)]
                 #debug_print(f"Numeric part: {numeric_part}")
                 result = to_float(Decimal(numeric_part) * multiplier)
                 #debug_print(f"Parsed result: {result}")
                 return result
             except decimal.InvalidOperation as e:
-                debug_print(f"Error parsing {value}: {e}")
-                raise ValueError(f"Invalid inductance value: {value}")
+                debug_print(f"Error parsing {value_str}: {e}")
+                raise ValueError(f"Invalid inductance value_str: {value_str}")
 
     try:
-        result = to_float(Decimal(value))
+        result = to_float(Decimal(value_str))
         #debug_print(f"Parsed result: {result}")
         return result
     except decimal.InvalidOperation as e:
-        debug_print(f"Error parsing {value}: {e}")
-        raise ValueError(f"Invalid inductance value: {value}")
+        debug_print(f"Error parsing '{value_str}': {e}")
+        raise ValueError(f"Invalid inductance value: '{value_str}'")
 
 def load_frequency_bands(filename='frequency_bands.json'):
     with open(filename, 'r') as f:
@@ -1572,9 +1575,11 @@ def main():
         debug_print(f"Available inductors: {inductors}")
         if args.equivalent_inductor_min_current:
             min_current = parse_current(args.equivalent_inductor_min_current)
+            min_current_string = f" (I≥{format_current_value(min_current)})"
         else:
             min_current = None
-        debug_print(f"Minimum current requirement: {min_current}A")
+            min_current_string = ""
+        debug_print(f"Minimum current requirement: {min_current}")
         debug_print(f"Requesting configs...")
         target_value = float(parse_inductance(args.equivalent_inductor))
         configs = generate_inductor_configurations(
@@ -1592,7 +1597,7 @@ def main():
         formatted_bands = ', '.join(format_band_with_range(band) for band in args.bands)
 
         if configs:
-            print(f"Configurations for {format_inductance_value(target_value)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz:")
+            print(f"Configurations for {format_inductance_value(target_value)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz{min_current_string}:")
 
             for i, config_tuple in enumerate(configs, 1):
                 config_groups = config_tuple[0]
