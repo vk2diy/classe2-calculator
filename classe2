@@ -347,10 +347,50 @@ def load_inductor_data():
 
 def preprocess_inductors(inductors_data):
     preprocessed_data = []
+    error_count = 0
+    total_count = 0
+
     for manufacturer, models in inductors_data.items():
         for model, data in models.items():
-            inductance_uh = convert_to_uh(data['inductance'])
-            preprocessed_data.append((model, inductance_uh))
+            total_count += 1
+            try:
+                inductance_uh = convert_to_uh(data['inductance'])
+
+                # Check for valid inductance
+                if inductance_uh <= 0:
+                    raise ValueError(f"Invalid inductance value: {data['inductance']}")
+
+                # Check for valid DCR (DC Resistance)
+                dcr = data.get('dcr', None)
+                if dcr is not None:
+                    if not isinstance(dcr, (int, float)) or dcr < 0:
+                        raise ValueError(f"Invalid DCR value: {dcr}")
+
+                # Check for valid IDC (DC Current)
+                idc = data.get('idc', None)
+                if idc is not None:
+                    if not isinstance(idc, (int, float)) or idc <= 0 or idc == float('inf'):
+                        raise ValueError(f"Invalid IDC value: {idc}")
+
+                # Check for valid SRF (Self-Resonant Frequency)
+                srf = data.get('srf', None)
+                if srf is not None:
+                    if not isinstance(srf, (int, float)) or srf <= 0:
+                        raise ValueError(f"Invalid SRF value: {srf}")
+
+                preprocessed_data.append((model, inductance_uh))
+
+            except KeyError as e:
+                print(f"Error: Missing required data for {manufacturer} {model}: {str(e)}")
+                error_count += 1
+            except ValueError as e:
+                print(f"Error: Invalid data for {manufacturer} {model}: {str(e)}")
+                error_count += 1
+            except Exception as e:
+                print(f"Unexpected error processing {manufacturer} {model}: {str(e)}")
+                error_count += 1
+
+    debug_print(f"preprocess_inductors() complete - {len(preprocessed_data)} valid entries, {error_count} errors out of {total_count} total entries.")
     return preprocessed_data
 
 def prune_inductors(inductors_h, frequency_bands, bands):
