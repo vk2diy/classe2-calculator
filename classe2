@@ -395,9 +395,13 @@ def preprocess_inductors(inductors_data):
 
 def prune_inductors(inductors_h, frequency_bands, bands):
     max_freq = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
-    debug_print(f"prune_inductors() for bands {bands} means maximum frequency {max_freq}MHz")
-    pruned = [ind for ind in inductors_h if estimate_srf_optimistic(ind) > max_freq * 3]
-    debug_print(f"prune_inductors() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
+    srf_factor = 2  # This factor determines how much higher the SRF should be compared to max_freq
+
+    pruned = [ind for ind in inductors_h if estimate_srf_optimistic(ind) > max_freq * srf_factor]
+
+    print(f"DEBUG: prune_inductors() for bands {bands} means maximum frequency {max_freq}MHz")
+    print(f"DEBUG: prune_inductors() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
+
     return pruned
 
 INDUCTORS = load_inductor_data()
@@ -482,37 +486,30 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
     pruned_inductors = prune_inductors(inductors_h, frequency_bands, bands)
     sorted_inductors_h = sorted(set(pruned_inductors))
 
-    precise_match = find_precise_match(target_value_h, sorted_inductors_h)
-    if precise_match:
-        srf = estimate_srf_optimistic(precise_match)
-        idc = get_inductor_properties(precise_match)[2]
-        if min_current is None or idc >= min_current * 1000:
-            configurations.append(([[precise_match]], target_value_h, srf))
+    max_freq = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
 
-    for num_parts in range(2, max_components + 1):
+    for num_parts in range(1, max_components + 1):
         new_configs = generate_multi_part_configs(target_value_h, sorted_inductors_h, num_parts)
         for config in new_configs:
-            if isinstance(config, (int, float)):
-                config = [config]
-            elif isinstance(config[0], list):
-                config = [item for sublist in config for item in sublist]
-
             total_value = sum(config)
             try:
                 srf = min(estimate_srf_optimistic(ind) for ind in config)
-                dcr = sum(get_inductor_properties(ind)[1] for ind in config)
-                idc = min(get_inductor_properties(ind)[2] for ind in config)
+                if srf > max_freq * 2:  # Ensure SRF is at least 2 times the max frequency
+                    dcr = sum(get_inductor_properties(ind)[1] for ind in config)
+                    idc = min(get_inductor_properties(ind)[2] for ind in config)
 
-                if min_current is None or idc >= min_current * 1000:
-                    configurations.append(([config], total_value, srf))
+                    if min_current is None or idc >= min_current * 1000:
+                        configurations.append(([config], total_value, srf))
             except ValueError as e:
                 print(f"Warning: Skipping configuration due to error: {e}")
                 continue
 
+    # Modified sorting key
     configurations.sort(key=lambda x: (
         sum(len(group) for group in x[0]),  # Total part count
-        count_unique_parts(x),  # Unique part count
-        (abs(x[1] - target_value_h) / target_value_h), # Accuracy
+        len(set(ind for group in x[0] for ind in group)),  # Unique part count
+        -abs(x[1] - target_value_h) / target_value_h,  # Negative accuracy (for descending order)
+        -x[2]  # Negative SRF (for descending order)
     ))
 
     return configurations[:max_configurations]
@@ -532,7 +529,7 @@ def generate_multi_part_configs(target_value_h, inductors_h, num_parts, toleranc
         total = sum(combo)
         accuracy = 1 - abs(total - target_value_h) / target_value_h
         if accuracy >= (1 - tolerance):
-            configs.append(list(combo))  # Always return a list of inductor values
+            configs.append(list(combo))
 
         if len(configs) >= 1000:
             break
