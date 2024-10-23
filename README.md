@@ -524,6 +524,16 @@ It pulls in various information from external JSON files.
 | `crss_pf`   | pF   | Reverse transfer capacitance  |
 | `vgs_th_v`  | V    | Gate threshold voltage        |
 
+ * __inductors.json__: Contains inductor rating, tolerance, resistance, current and SRF information.
+
+| Name         | Unit | Property                                             |
+| ------------ | ---- | ---------------------------------------------------- |
+| `inductance` | µH   | Nominal rated inductance                             |
+| `tolerance`  | ±%   | Tolerance in percent above/below nominal rated value |
+| `dcr_ohms`   | Ω    | DC resistance                                        |
+| `idc_ma`     | mA   | DC current limit                                     |
+| `srf_mhz`    | MHz  | Self-resonant frequency                              |
+
 ### Note on interface approach
 
 The traditional unix style command-line interface is typically transactional, which is to say that a particular execution goal is explicitly specified (setting the program "mode" and often all related inputs) and then the program runs and returns its output. This is an approach which works well for specific tasks and is well suited to automation but begins to prove tedious when very high numbers of iterative executions may be required to explore a potential solution space.
