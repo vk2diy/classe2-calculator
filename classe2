@@ -399,8 +399,8 @@ def prune_inductors(inductors_h, frequency_bands, bands):
 
     pruned = [ind for ind in inductors_h if estimate_srf_optimistic(ind) > max_freq * srf_factor]
 
-    print(f"DEBUG: prune_inductors() for bands {bands} means maximum frequency {max_freq}MHz")
-    print(f"DEBUG: prune_inductors() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
+    debug_print(f"prune_inductors() for bands {bands} means maximum frequency {max_freq}MHz")
+    debug_print(f"prune_inductors() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
 
     return pruned
 
@@ -1692,7 +1692,7 @@ def main():
         formatted_bands = ', '.join(format_band_with_range(band) for band in args.bands)
 
         if configs:
-            print(f"Configurations for {format_inductance_value(target_value_h)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz{min_current_string}:")
+            print(f"Configurations (≤{args.equivalent_inductor_max_components} parts) for {format_inductance_value(target_value_h)} on bands {formatted_bands} with maximum operating frequency {max_freq}MHz{min_current_string}:")
 
             def count_unique_parts(config):
                 if isinstance(config[0], (int, float)):  # Series configuration
