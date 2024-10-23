@@ -534,6 +534,14 @@ It pulls in various information from external JSON files.
 | `idc_ma`     | mA   | DC current limit                                     |
 | `srf_mhz`    | MHz  | Self-resonant frequency                              |
 
+ * __frequency_bands.json__: Contains frequency band information.
+
+| Name    | Unit | Property                                              |
+| ------- | ---- | ----------------------------------------------------- |
+| `start` | MHz  | Lowest frequency at the beginning of the band         |
+| `end`   | MHz  | Highest frequency at the end of the band              |
+| `q`     | -    | Band quality factor (ratio of bandwidth to frequency) |
+
 ### Note on interface approach
 
 The traditional unix style command-line interface is typically transactional, which is to say that a particular execution goal is explicitly specified (setting the program "mode" and often all related inputs) and then the program runs and returns its output. This is an approach which works well for specific tasks and is well suited to automation but begins to prove tedious when very high numbers of iterative executions may be required to explore a potential solution space.
