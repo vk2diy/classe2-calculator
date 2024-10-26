@@ -508,7 +508,7 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
             try:
                 srf_mhz = min(estimate_srf_optimistic(ind) for ind in config)
                 dcr_ohm = sum(get_inductor_properties(ind)[1] for ind in config)
-                idc_ma = convert_a_to_ma(min(get_inductor_properties(ind)[2] for ind in config))
+                idc_ma = min(get_inductor_properties(ind)[2] for ind in config)
 
                 debug_print(f"Config: {[format_inductance_value(ind) for ind in config]}, Value: {convert_h_to_uh(total_value_h):.2f}µH, Accuracy: {accuracy*100:.2f}%, SRF: {srf_mhz}MHz, DCR: {dcr_ohm:.2f}Ω, IDC: {idc_ma:.0f}mA")
 
@@ -1627,11 +1627,6 @@ def create_parser():
     
     return parser
 
-def parse_arguments():
-    parser = create_parser()
-    args = parser.parse_args()
-    return args
-
 def test_estimate_srf():
     inductors = [
         0.001, 0.0015, 0.0022, 0.0033, 0.0047, 0.0068, 0.0082,
@@ -1655,7 +1650,9 @@ def test_estimate_srf():
 
 def main():
     global debug_enabled
-    args = parse_arguments()
+
+    parser = create_parser()
+    args = parser.parse_args()
     debug_enabled = args.debug
 
     matching_network_type = args.matching.lower() if args.matching else 'pi'
@@ -1731,7 +1728,7 @@ def main():
     # Check for required arguments for main operation
     if not all([args.power, args.voltage, args.bands, args.mosfet]):
         print("Error: The following arguments are required: -p/--power, -v/--voltage, -b/--bands, -m/--mosfet")
-        usage()
+        parser.print_usage()
         sys.exit(1)
 
     if args.mosfet not in MOSFETS:
