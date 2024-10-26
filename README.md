@@ -2,6 +2,115 @@
 
 __classe2-calculator__ calculates [Class-E Power Amplifier](https://en.wikipedia.org/wiki/Power_amplifier_classes#Class_E) circuit component values in order to assist with the practical design of Class-E Power Amplifier based circuits for RF communication, plasma control, or any other application. It is pronounced "[classi](https://en.wiktionary.org/wiki/classy#Adjective)[*er*](https://en.wiktionary.org/wiki/%E4%BA%8C#Pronunciation)", as an English-Mandarin [*portmanteau*](https://en.wikipedia.org/wiki/Blend_word).
 
+## Example
+
+Suppose we wish to generate a Class E power amplifier for a radio transceiver with the following parameters:
+ * Nominal 12V supply
+ * 5 watt output
+ * Operation on 20m, 30m and 40m bands
+ * Using the MOSFET SI2304DDS
+ * Fixing the design to 10uH L1 inductor
+
+```
+$ ./classe2 -v 12 -p 5 -b 20m -m SI2304DDS --l1 10uh
+Command line: ./classe2 -v 12 -p 5 -b 20m -m SI2304DDS --l1 10uh
+UTC datetime: Sat Oct 26 23:27:11 UTC 2024
+
+Input parameters:
+ Output Power = 5.00W
+ Supply Voltage = 12.00V
+ MOSFET = SI2304DDS (Vdss=30V, Id=2.7A, Rds_on=0.049Ω, Ciss=235pF, Coss=45pF, Crss=17pF, Vgs_th=2.3375V)
+ Q Factor = None
+
+[20m] @ 14MHz-14MHz (c=14MHz, nbw=350kHz, bw=420kHz, q=33.75)
+ Power Amplifier components:
+  Topology = infinite
+  L1 = 10µH (user-specified)
+  L2 = 6.2µH
+  C1 = 136.39pF
+  C2 = 21.02pF
+  R = 16Ω (before matching)
+
+  Top 3 recommended Power Amplifier component configurations:
+
+   Configuration 1: (0% error, estimated SRF margin 0 (Concern), 6 parts)
+   (SRF Concern: Consider using a different inductor or parallel combination for L2)
+     L2 = 6.2µH (1.5µH + 4.7µH) [ESR=2.00x] [I=0.50x]
+     C1 = 136.36pF (150.00pF || 1.50nF) [ESR=0.50x] [I=2.00x]
+     C2 = 21.02pF (22.00pF || 470.00pF) [ESR=0.50x] [I=2.00x]
+
+   Configuration 2: (0.01% error, estimated SRF margin 0 (Concern), 6 parts)
+   (SRF Concern: Consider using a different inductor or parallel combination for L2)
+     L2 = 6.2µH (1.5µH + 4.7µH) [ESR=2.00x] [I=0.50x]
+     C1 = 136.00pF (68.00pF + 68.00pF) [ESR=2.00x] [I=0.50x]
+     C2 = 21.02pF (22.00pF || 470.00pF) [ESR=0.50x] [I=2.00x]
+
+   Configuration 3: (0.01% error, estimated SRF margin 0 (Concern), 6 parts)
+   (SRF Concern: Consider using a different inductor or parallel combination for L2)
+     L2 = 6.2µH (6.8µH || 68µH) [ESR=0.50x] [I=2.00x]
+     C1 = 136.36pF (150.00pF || 1.50nF) [ESR=0.50x] [I=2.00x]
+     C2 = 21.02pF (22.00pF || 470.00pF) [ESR=0.50x] [I=2.00x]
+
+Matching Network Configurations (pi topology):
+    Precise configuration (0.03% error, 9 parts):
+      C1_match: 980.00pF (150.00pF + 150.00pF + 680.00pF)
+      L_match: 0.8µH (0.003µH + 0.12µH + 0.68µH)
+      C2_match: 321.50pF (1.50pF + 100.00pF + 220.00pF)
+    Approximate configuration 1 (2.05% error, 4 parts):
+      C1_match: 1.00nF (1.00nF)
+      L_match: 0.82µH (0.82µH)
+      C2_match: 320.00pF (100.00pF + 220.00pF)
+    Approximate configuration 2 (2.67% error, 3 parts):
+      C1_match: 1.00nF (1.00nF)
+      L_match: 0.82µH (0.82µH)
+      C2_match: 330.00pF (330.00pF)
+
+Low Pass Filter Configurations:
+ 7th = (0.20% error, 21 parts): C1_lpf=66.70pF (4.70pF + 15.00pF + 47.00pF) L1_lpf=0.47µH (0.82µH || 1.5µH || 3.9µH) C2_lpf=270.30pF (3.30pF + 47.00pF + 220.00pF) L2_lpf=0.75µH (0.008µH + 0.18µH + 0.56µH) C3_lpf=270.30pF (3.30pF + 47.00pF + 220.00pF) L3_lpf=0.47µH (0.82µH || 1.5µH || 3.9µH) C4_lpf=66.70pF (4.70pF + 15.00pF + 47.00pF)
+ 7th ≈ (18.44% error, 7 parts): C1_lpf=68.00pF L1_lpf=0.47µH C2_lpf=220.00pF L2_lpf=0.68µH C3_lpf=220.00pF L3_lpf=0.47µH C4_lpf=68.00pF
+ 6th = (0.14% error, 18 parts): C1_lpf=77.40pF (4.70pF + 4.70pF + 68.00pF) L1_lpf=0.53µH (0.003µH + 0.056µH + 0.47µH) C2_lpf=289.00pF (1.00pF + 68.00pF + 220.00pF) L2_lpf=0.72µH (0.033µH + 0.22µH + 0.47µH) C3_lpf=212.00pF (15.00pF + 47.00pF + 150.00pF) L3_lpf=0.19µH (0.005µH + 0.039µH + 0.15µH)
+ 6th ≈ (14.11% error, 6 parts): C1_lpf=68.00pF L1_lpf=0.56µH C2_lpf=330.00pF L2_lpf=0.68µH C3_lpf=220.00pF L3_lpf=0.18µH
+ 5th = (0.34% error, 14 parts): C1_lpf=92.20pF (2.20pF + 22.00pF + 68.00pF) L1_lpf=0.61µH (0.007µH + 0.039µH + 0.56µH) C2_lpf=300.00pF (150.00pF + 150.00pF) L2_lpf=0.61µH (0.007µH + 0.039µH + 0.56µH) C3_lpf=92.20pF (2.20pF + 22.00pF + 68.00pF)
+ 5th ≈ (10.22% error, 5 parts): C1_lpf=100.00pF L1_lpf=0.56µH C2_lpf=330.00pF L2_lpf=0.56µH C3_lpf=100.00pF
+ 4th = (0.14% error, 12 parts): C1_lpf=114.70pF (4.70pF + 10.00pF + 100.00pF) L1_lpf=0.69µH (0.002µH + 0.01µH + 0.68µH) C2_lpf=277.00pF (10.00pF + 47.00pF + 220.00pF) L2_lpf=0.29µH (0.002µH + 0.015µH + 0.27µH)
+ 4th ≈ (19.30% error, 4 parts): C1_lpf=100.00pF L1_lpf=0.68µH C2_lpf=330.00pF L2_lpf=0.27µH
+ 3rd = (0.10% error, 7 parts): C1_lpf=149.86pF (220.00pF || 470.00pF) L1_lpf=0.75µH (0.008µH + 0.18µH + 0.56µH) C2_lpf=149.86pF (220.00pF || 470.00pF)
+ 3rd ≈ (9.15% error, 3 parts): C1_lpf=150.00pF L1_lpf=0.68µH C2_lpf=150.00pF
+ 2nd = (0.14% error, 6 parts): C1_lpf=212.00pF (15.00pF + 47.00pF + 150.00pF) L1_lpf=0.53µH (0.003µH + 0.056µH + 0.47µH)
+ 2nd ≈ (5.80% error, 2 parts): C1_lpf=220.00pF L1_lpf=0.56µH
+ 1st = (0.20% error, 2 parts): C1_lpf=300.00pF (150.00pF + 150.00pF)
+ 1st ≈ (10.22% error, 1 parts): C1_lpf=330.00pF
+
+                                                  ANTENNA
+                                                  SYSTEM
+                                                   |  |
+======= Class E Power Amplifier ===================|==|===
+                                                   |  |
+   VCC--[L1]--[C1]--[C2]--[L2]--.       DRV--[MOSFET] |
+               |                |               |     |
+              GND               |              GND    |
+                                |                     |
+                                |                     |
+ .------------------------------'                     |
+ | Z<50Ω                                              |
+=|===== Pi Matching Network ==========================|===
+ |                                                    |
+ `--[C1_match]--[L_match]--[C2_match]--.              |
+       |                      |        |              |
+      GND                    GND       |              |
+                                       |              |
+ .-------------------------------------'              |
+ | Z=50Ω                                              |
+=|===== Low Pass Filter ==============================|===
+ |                                                    |
+ `--[C1_lpf]--[L2_lpf]--[C3_lpf]--[L4_lpf]--[C5_lpf]--'
+       |                   |                   |
+      GND                 GND                 GND
+
+==========================================================
+
+```
+
 ## Why?
 
 The motivation for writing this software was increasing frustration attempting to understand and explore the solution space for the design of surface mount component based systems using existing tools, coupled with the intent to perform similar calculations in the future. What distinguishes it from other options?
