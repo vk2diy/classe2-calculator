@@ -403,9 +403,9 @@ The equations:
      * `Δf` is the aggregate bandwidth of the band (in Hz), typically measured at -3dB points.
  * `C(DRAINMAX)` — __Maximum MOSFET Drain Capacitance__
    * Maximum MOSFET drain capacitance is a function of frequency and load resistance.
-   * Mathjax: $$C_{DRAINMAX} = \frac{1}{2\pi f \cdot R_{LOAD}}$$
+   * Mathjax: $$C_{DRAINMAX} = \frac{k}{2\pi f \cdot R_{LOAD}}$$
    * Unicode: `C(DRAINMAX) = k / (2πf ⋅ R(LOAD))`
-   * English: ""
+   * English: "The Maximum MOSFET drain capacitance (in farads) is equal to the scaling factor divided by the frequency (in radians per second) multiplied by the load resistance (in ohms)."
    * Where:
      * `k` is a scaling factor (typically between 1 (possibly unworkable at high frequencies) and 4, with 3 as a suggested default at high frequencies)
      * `f` is the operating frequency in Hz
