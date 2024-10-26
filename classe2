@@ -695,7 +695,7 @@ def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_f
     C2_error = abs(C2 - target_C2) / target_C2
     total_error = L2_error + C1_error + C2_error
     
-    L2_srf = estimate_srf(L2)
+    L2_srf = estimate_srf_optimistic(L2)
     srf_margin = L2_srf / center_freq
     
     return total_error, srf_margin
@@ -875,7 +875,7 @@ def evaluate_configuration(L2, C1, C2, target_L2, target_C1, target_C2, center_f
     C2_error = abs(C2 - target_C2) / target_C2
     total_error = L2_error + C1_error + C2_error
 
-    L2_srf = estimate_srf(L2)
+    L2_srf = estimate_srf_optimistic(L2)
     srf_margin = L2_srf / center_freq
 
     return total_error, srf_margin
