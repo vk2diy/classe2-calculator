@@ -513,8 +513,8 @@ def generate_inductor_configurations(target_value_h, inductors_h, frequency_band
                 debug_print(f"Config: {[format_inductance_value(ind) for ind in config]}, Value: {convert_h_to_uh(total_value_h):.2f}µH, Accuracy: {accuracy*100:.2f}%, SRF: {srf_mhz}MHz, DCR: {dcr_ohm:.2f}Ω, IDC: {idc_ma:.0f}mA")
 
                 if srf_mhz >= max_freq_mhz * 3 and (min_current_ma is None or idc_ma >= min_current_ma):
+                    debug_print(f"idc_ma {idc_ma} >= min_current_ma {min_current_ma} ... Configuration added!")
                     configurations.append((config, total_value_h, srf_mhz, dcr_ohm, idc_ma, accuracy))
-                    debug_print("Configuration added")
                     return True
                 else:
                     debug_print(f"Configuration rejected: SRF requirement: {srf_mhz >= max_freq_mhz * 3}, Current requirement: {idc_ma >= min_current_ma if min_current_ma else True}")
@@ -1665,8 +1665,9 @@ def main():
         inductors_h = [i * 1e-6 for i in COMPONENTS['inductors_uh']]  # Convert to Henry
         debug_print(f"Available inductors: {inductors_h}")
         if args.equivalent_inductor_min_current:
-            min_current_ma = parse_current(args.equivalent_inductor_min_current)
-            min_current_string = f" (I≥{format_current_value(min_current_ma)})"
+            min_current = parse_current(args.equivalent_inductor_min_current)
+            min_current_string = f" (I≥{format_current_value(min_current)})"
+            min_current_ma = convert_a_to_ma(min_current)
         else:
             min_current_ma = None
             min_current_string = ""
