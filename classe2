@@ -393,14 +393,14 @@ def preprocess_inductors(inductors_data):
     debug_print(f"preprocess_inductors() complete - {len(preprocessed_data)} valid entries, {error_count} errors out of {total_count} total entries.")
     return preprocessed_data
 
-def prune_inductors(inductors_h, frequency_bands, bands):
+def prune_inductors_by_srf_for_target_frequency_bands(inductors_h, frequency_bands, bands):
     max_freq = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
     srf_factor = 2  # This factor determines how much higher the SRF should be compared to max_freq
 
     pruned = [ind for ind in inductors_h if estimate_srf_optimistic(ind) > max_freq * srf_factor]
 
-    debug_print(f"prune_inductors() for bands {bands} means maximum frequency {max_freq}MHz")
-    debug_print(f"prune_inductors() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
+    debug_print(f"prune_inductors_by_srf_for_target_frequency_bands() for bands {bands} means maximum frequency {max_freq}MHz")
+    debug_print(f"prune_inductors_by_srf_for_target_frequency_bands() reduced available inductors from {len(inductors_h)} to {len(pruned)}")
 
     return pruned
 
@@ -483,9 +483,13 @@ def series_combination(*values):
 def generate_inductor_configurations(target_value_h, inductors_h, frequency_bands, max_components=3, max_configurations=15, bands=None, min_current_ma=None, min_accuracy='0.85'):
     configurations = []
 
-    pruned_inductors = prune_inductors(inductors_h, frequency_bands, bands)
+    # first reduce to inductors with viable SRF
+    pruned_inductors = prune_inductors_by_srf_for_target_frequency_bands(inductors_h, frequency_bands, bands)
+
+    # now sort the result
     sorted_inductors_h = sorted(set(pruned_inductors))
 
+    # figure out the maximum operating frequency
     max_freq_mhz = max(band['end'] for band_name, band in frequency_bands.items() if band_name in bands)
 
     # Convert min_accuracy to float
